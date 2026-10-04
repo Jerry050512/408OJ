@@ -5,17 +5,7 @@ from __future__ import annotations
 import hashlib
 
 from . import db
-from .content import real_2012_2016, real_2017_2021, real_2022_2026
-from .content import practice
-
-CONTENT_MODULES = [real_2012_2016, real_2017_2021, real_2022_2026, practice]
-
-
-def all_problem_defs() -> list[dict]:
-    out: list[dict] = []
-    for mod in CONTENT_MODULES:
-        out.extend(mod.PROBLEMS)
-    return out
+from .content.loader import all_problem_defs
 
 
 def _norm_text(s: str) -> str:
