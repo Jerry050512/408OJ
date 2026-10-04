@@ -21,8 +21,8 @@
     <div class="card-title"><h2 style="margin:0">真题年份进度</h2></div>
     <div class="chip-list">
       {% for y, st in years %}
-      <a class="tag" href="/problems?kind=exam" style="font-size:13px;padding:5px 12px;{{ 'color:var(--green-400);border-color:rgba(16,185,129,.5)' if st=='AC' }}">
-        {{ y }} {{ '✓' if st == 'AC' }}
+      <a class="tag" href="/problems?kind=exam" style="font-size:13px;padding:4px 11px;{{ 'color:var(--green);border-color:var(--green)' if st=='AC' }}">
+        {{ y }}{{ ' ✓' if st == 'AC' }}
       </a>
       {% endfor %}
     </div>
@@ -51,7 +51,7 @@
         <td class="muted" style="font-size:13px">{{ s.created_at | round(0) | int | datetime }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="5"><div class="empty"><div class="icon">📊</div>还没有数据</div></td></tr>
+      <tr><td colspan="5"><div class="empty"><p>还没有评测数据。</p></div></td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -2,34 +2,34 @@
 {% block title %}首页{% endblock %}
 {% block content %}
 <section class="hero">
-  <h1>把 408 算法大题<br>练成肌肉记忆</h1>
+  <div class="kicker">LOCAL JUDGE — DATA STRUCTURES · 408</div>
+  <h1>408 算法大题训练场</h1>
   <p class="sub">
-    收录 <b>2012–2026</b> 全部数据结构算法设计真题，配套考点拆解练习与逐题题解。
-    严格的 <b>408 合规检查</b>模拟考场环境——只允许头文件白名单内的 C 语言，禁止 qsort，
-    像在考场上一样手写每一段代码。
+    收录 2012–2026 年全部 16 道数据结构算法设计真题，按考点配 26 道拆解练习与逐题题解。
+    提交代码经 GCC 真实评测，并按 408 考试标准做库函数合规检查（白名单头文件、禁止 qsort）。
   </p>
   <div class="hero-tags">
-    <span class="badge b-exam">★ 真题 {{ exam|length }} 道</span>
-    <span class="badge b-prac">考点练习 {{ prac|length }} 道</span>
-    <span class="badge">GCC 真实评测</span>
-    <span class="badge">标准/严格两级合规矩尺</span>
+    <span class="badge b-exam">真题 · {{ exam|length }}</span>
+    <span class="badge b-prac">考点练习 · {{ prac|length }}</span>
+    <span class="badge">C11 · -O2 · 逐点评测</span>
+    <span class="badge">合规两级：标准 / 严格</span>
   </div>
 </section>
 
 <div class="stat-grid">
   <a class="stat-card" href="/problems?kind=exam">
-    <div class="num">{{ solved_exam }}<span class="muted" style="font-size:15px"> / {{ exam|length }}</span></div>
+    <div class="num">{{ solved_exam }}<span class="muted" style="font-size:14px">/{{ exam|length }}</span></div>
     <div class="lbl">真题已通过</div>
     <div class="bar"><i style="width: {{ (100 * solved_exam / (exam|length or 1)) | round(1) }}%"></i></div>
   </a>
   <a class="stat-card" href="/problems?kind=practice">
-    <div class="num">{{ solved_prac }}<span class="muted" style="font-size:15px"> / {{ prac|length }}</span></div>
+    <div class="num">{{ solved_prac }}<span class="muted" style="font-size:14px">/{{ prac|length }}</span></div>
     <div class="lbl">练习题已通过</div>
     <div class="bar"><i style="width: {{ (100 * solved_prac / (prac|length or 1)) | round(1) }}%"></i></div>
   </a>
   <a class="stat-card" href="/submissions">
     <div class="num">{{ total_sub }}</div>
-    <div class="lbl">总提交数（AC {{ ac_sub }}）</div>
+    <div class="lbl">总提交 · AC {{ ac_sub }}</div>
   </a>
   <a class="stat-card" href="/stats">
     <div class="num">{{ tried }}</div>
@@ -39,10 +39,10 @@
 
 <div class="two-col">
   <div class="card">
-    <div class="card-title"><h2 style="margin:0">章节掌握度</h2></div>
+    <div class="card-title"><span class="micro-label">章节掌握度</span></div>
     {% for ch, st in chapters.items() | sort %}
-    <div style="margin:13px 0">
-      <div style="display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px">
+    <div style="margin:12px 0">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
         <b>{{ ch }}</b>
         <span class="muted mono">{{ st.solved }}/{{ st.total }}</span>
       </div>
@@ -51,20 +51,23 @@
     {% endfor %}
   </div>
   <div class="card">
-    <div class="card-title"><h2 style="margin:0">最近提交</h2>
-      <a class="btn btn-ghost btn-sm" style="margin-left:auto" href="/submissions">全部</a></div>
+    <div class="card-title"><span class="micro-label">最近提交</span>
+      <a class="btn btn-ghost btn-sm" style="margin-left:auto" href="/submissions">全部 →</a></div>
     {% if recent %}
       {% for s in recent %}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
         <div style="min-width:0">
-          <a href="/p/{{ s.p.code }}" class="t-title" style="font-weight:600">{{ s.p.title }}</a>
-          <div class="muted" style="font-size:12px">{{ s.created_at | round(0) | int | datetime }}</div>
+          <a href="/p/{{ s.p.code }}" style="font-weight:550;color:var(--text)">{{ s.p.title }}</a>
+          <div class="muted mono" style="font-size:11.5px">{{ s.created_at | round(0) | int | datetime }}</div>
         </div>
         <span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span>
       </div>
       {% endfor %}
     {% else %}
-      <div class="empty"><div class="icon">📝</div>还没有提交，去<a href="/problems">题库</a>挑一道真题开练吧</div>
+      <div class="empty" style="margin:0">
+        <p>还没有提交记录。</p>
+        <p><a href="/problems?kind=exam">从 2012 年的第一套真题开始 →</a></p>
+      </div>
     {% endif %}
   </div>
 </div>
