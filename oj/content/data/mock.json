@@ -379,7 +379,7 @@
         "output": "-3\n"
       }
     ],
-    "ref_c": "#include <stdio.h>\nint a[100005], n, best;\nstatic int dfs(int i){\n    if (i >= n || a[i] == -1) return 0;\n    int l = dfs(2*i+1), r = dfs(2*i+2);\n    if (l < 0) l = 0; if (r < 0) r = 0;\n    int path = a[i] + l + r;\n    if (path > best) best = path;\n    int ret = a[i] + (l > r ? l : r);\n    return ret > 0 ? ret : 0;\n}\nint main(void){\n    if (scanf(\"%d\", &n) != 1) return 0;\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    best = -100000000;\n    dfs(0);\n    printf(\"%d\\n\", best);\n    return 0;\n}\n",
+    "ref_c": "#include <stdio.h>\nint a[100005], n, best;\nstatic int dfs(int i){\n    if (i >= n || a[i] == -1) return 0;\n    int l = dfs(2*i+1), r = dfs(2*i+2);\n    if (l < 0) l = 0;\n    if (r < 0) r = 0;\n    int path = a[i] + l + r;\n    if (path > best) best = path;\n    int ret = a[i] + (l > r ? l : r);\n    return ret > 0 ? ret : 0;\n}\nint main(void){\n    if (scanf(\"%d\", &n) != 1 || n == 0) { printf(\"0\\n\"); return 0; }\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    if (a[0] == -1) { printf(\"0\\n\"); return 0; }\n    best = -100000000;\n    dfs(0);\n    printf(\"%d\\n\", best);\n    return 0;\n}\n",
     "solution_md": "## 考点\n\n二叉树递归 + 全局最优（王道 5.3）。经典\"最大路径和\"问题。\n\n## 思路\n\ndfs(i) 返回从结点 i 出发向下延伸的最大路径和（可为 0 表示不选）。同时更新全局 best = max(best, a[i] + left + right)。\n\n## 复杂度\n\n时间 O(n)，空间 O(h)。\n\n## 考场提示\n\n- 负数结点可能不选，left/right, right) 与 0 取 max；\n- best 初始化要足够小。",
     "policy": {
       "level": "standard"
