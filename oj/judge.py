@@ -78,13 +78,24 @@ def run_program(exe_path: Path, stdin_data: str, time_limit_ms: int,
     toc = time.monotonic
     t0 = toc()
     peak_kb = 0
+    workdir = cwd or exe_path.parent
+    # stdout/stderr 重定向到临时文件：避免大输出时管道缓冲满造成子进程阻塞
+    out_path = Path(workdir) / "stdout.tmp"
+    err_path = Path(workdir) / "stderr.tmp"
+    try:
+        f_out = open(out_path, "w", encoding="utf-8", errors="replace")
+        f_err = open(err_path, "w", encoding="utf-8", errors="replace")
+    except OSError as e:
+        return {"verdict": VERDICT_SE, "time_ms": 0, "mem_kb": 0,
+                "stdout": "", "stderr": str(e), "returncode": None}
     try:
         proc = subprocess.Popen(
-            [str(exe_path)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, cwd=cwd or exe_path.parent, text=True,
+            [str(exe_path)], stdin=subprocess.PIPE, stdout=f_out,
+            stderr=f_err, cwd=workdir, text=True,
             encoding="utf-8", errors="replace",
         )
     except OSError as e:
+        f_out.close(); f_err.close()
         return {"verdict": VERDICT_SE, "time_ms": 0, "mem_kb": 0,
                 "stdout": "", "stderr": str(e), "returncode": None}
     if psutil is not None:
@@ -127,10 +138,16 @@ def run_program(exe_path: Path, stdin_data: str, time_limit_ms: int,
 
     time_ms = (toc() - t0) * 1000
     try:
-        stdout, stderr = proc.communicate(timeout=2)
+        proc.wait(timeout=2)
     except subprocess.TimeoutExpired:
-        stdout, stderr = "", ""
+        proc.kill()
         verdict = verdict or VERDICT_SE
+    f_out.close(); f_err.close()
+    try:
+        stdout = out_path.read_text(encoding="utf-8", errors="replace")
+        stderr = err_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        stdout, stderr = "", ""
     if verdict is None:
         if proc.returncode != 0:
             verdict = VERDICT_RE
