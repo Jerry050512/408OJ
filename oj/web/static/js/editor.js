@@ -3,6 +3,7 @@
  * - 行号槽 / Tab 缩进 / 自动保存草稿到 localStorage
  */
 (function () {
+  const root = typeof window !== 'undefined' ? window : globalThis;
   const KEYWORDS = new Set([
     'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'break',
     'continue', 'return', 'goto', 'sizeof', 'typedef', 'struct', 'union',
@@ -52,6 +53,11 @@
 
   let ta, hl, hlScroll, gutter, saveKey, saveTimer;
 
+  // node 环境导出（pytest 通过 node 单测）
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { computeEnter, highlight };
+  }
+
   function render() {
     const src = ta.value;
     hl.innerHTML = highlight(src);
@@ -84,7 +90,22 @@
     }, 400);
   }
 
-  window.initEditor = function (pcode, hint) {
+  // 纯函数：回车时计算插入文本与新光标位置（供浏览器与 node 测试共用）
+  function computeEnter(before, after, s) {
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const curLine = before.slice(lineStart);
+    const indent = (curLine.match(/^\s*/) || [''])[0];
+    const deeper = /[{]\s*(\/\*[\s\S]*\*\/\s*)?$/.test(curLine) ? '    ' : '';
+    const trimmedAfter = after.replace(/^[ \t]*/, '');
+    if (deeper && trimmedAfter.startsWith('}')) {
+      const first = '\n' + indent + deeper;
+      return { insert: first + '\n' + indent, caret: s + first.length };
+    }
+    const insert = '\n' + indent + deeper;
+    return { insert, caret: s + insert.length };
+  }
+
+  root.initEditor = function (pcode, hint) {
     ta = document.getElementById('code');
     hl = document.getElementById('hl');
     hlScroll = document.getElementById('hlScroll');
@@ -104,6 +125,17 @@
         ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(t);
         ta.selectionStart = ta.selectionEnd = s + 4;
         render();
+      } else if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        // 回车自动缩进：对齐上一行缩进；上一行以 { 开头再进一级；
+        // 若光标后紧跟 }（空块），则生成 "{\n    |\n}" 结构并把光标放在中间。
+        e.preventDefault();
+        const s = ta.selectionStart, t = ta.selectionEnd;
+        const before = ta.value.slice(0, s);
+        const after = ta.value.slice(t);
+        const { insert, caret } = computeEnter(before, after, s);
+        ta.value = before + insert + after;
+        ta.selectionStart = ta.selectionEnd = caret;
+        render();
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');
@@ -113,8 +145,23 @@
     render();
   };
 
-  window.getCode = function () { return ta ? ta.value : ''; };
-  window.resetCode = function () {
+  // 静态页高亮：题解页参考实现、提交详情页代码、Markdown 里的 ```c 块
+  root.highlightCBlocks = function () {
+    document.querySelectorAll('#src-view, #refcode, .prose pre code.language-c, .prose pre code.c')
+      .forEach(function (el) {
+        el.innerHTML = highlight(el.textContent.replace(/\n$/, ''));
+      });
+  };
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', root.highlightCBlocks);
+    } else {
+      root.highlightCBlocks();
+    }
+  }
+
+  root.getCode = function () { return (typeof ta !== 'undefined' && ta) ? ta.value : ''; };
+  root.resetCode = function () {
     if (!confirm('确定清空当前代码并重置为骨架？')) return;
     ta.value = '#include <stdio.h>\n#include <stdlib.h>\n\nint main(void){\n    \n    return 0;\n}\n';
     render();
