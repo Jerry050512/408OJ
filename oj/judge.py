@@ -218,9 +218,7 @@ def judge_code(src: str, policy: dict | None, testcases: list[dict[str, Any]],
                 "is_sample": tc.get("is_sample", 0),
             })
             if v in (VERDICT_TLE, VERDICT_RE):
-                # 任意测试点 TLE/RE 即终止后续（标准 OJ 多为整题判定，这里继续跑完更友好；
-                # 但 TLE 很耗时，直接停止）
-                verdicts_remain = None
+                # TLE/RE 耗时或可能挂起，命中的测试点即终止评测（该点评为最终状态）
                 break
         base["results"] = results
         base["passed"] = passed
