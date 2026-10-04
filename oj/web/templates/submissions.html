@@ -22,7 +22,7 @@
         <td class="muted" style="font-size:13px">{{ s.created_at | round(0) | int | datetime }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="6"><div class="empty"><div class="icon">📭</div>暂无提交记录</div></td></tr>
+      <tr><td colspan="6"><div class="empty"><p>暂无提交记录。</p><p><a href="/problems">去题库做一道题 →</a></p></div></td></tr>
       {% endfor %}
     </tbody>
   </table>

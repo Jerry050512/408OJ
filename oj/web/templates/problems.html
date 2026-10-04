@@ -62,7 +62,7 @@
         <td><span class="stars">{{ stars(p.importance) | safe }}</span></td>
       </tr>
       {% else %}
-      <tr><td colspan="7"><div class="empty"><div class="icon">🔍</div>没有符合条件的题目</div></td></tr>
+      <tr><td colspan="7"><div class="empty"><p>没有符合条件的题目。</p><p><a href="/problems">清除全部筛选条件 →</a></p></div></td></tr>
       {% endfor %}
     </tbody>
   </table>

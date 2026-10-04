@@ -5,7 +5,7 @@
   {% if p.kind=='exam' %}<span class="badge b-exam">{{ p.year }} {{ p.exam_no }}</span>{% endif %}
   <h1>{{ p.title }}</h1>
   {% if status == 'solved' %}<span class="badge b-prac">已通过 ✓</span>
-  {% elif status == 'tried' %}<span class="badge" style="color:var(--amber-400);border-color:rgba(245,158,11,.4)">尝试过</span>{% endif %}
+  {% elif status == 'tried' %}<span class="badge" style="color:var(--amber);border-color:color-mix(in srgb, var(--amber) 45%, transparent)">尝试过</span>{% endif %}
 </div>
 <div class="meta-row">
   <span>章节 <b>{{ p.chapter }}</b></span>
@@ -45,14 +45,14 @@
       </div>
       {% endfor %}
       <div class="notice">
-        <b>408 合规约束：</b>仅允许头文件白名单
+        <b>408 合规约束</b> · 仅允许头文件白名单
         {% if p.policy.level == 'strict' %}
         （严格级）：<code>stdio.h stdlib.h limits.h stddef.h stdbool.h float.h</code>
         {% else %}
         （标准级）：<code>stdio.h stdlib.h string.h ctype.h math.h limits.h stddef.h stdbool.h float.h</code>
         {% endif %}
         ；禁用文件 I/O、进程/系统调用、<code>gets</code>、<code>qsort</code>、<code>bsearch</code>。
-        违规将判为编译失败并在评测详情中列出。
+        违规判为编译失败并在评测详情中逐行列出。
       </div>
     </div>
 
@@ -76,11 +76,10 @@
   <div style="position:sticky;top:76px">
     <div class="editor-wrap">
       <div class="editor-toolbar">
-        <span class="dot" style="background:#f87171"></span>
-        <span class="dot" style="background:#fbbf24"></span>
-        <span class="dot" style="background:#34d399"></span>
-        <span class="fn">main.c — C11 · {{ p.code }}</span>
-        <span style="margin-left:auto" class="muted" id="saveState"></span>
+        <span class="fn">main.c · C11</span>
+        <span class="badge" style="font-size:11px">{{ p.time_limit_ms }}ms</span>
+        <span class="badge" style="font-size:11px">{{ (p.memory_limit_kb/1024)|int }}MB</span>
+        <span style="margin-left:auto;font-size:11px" class="muted mono" id="saveState"></span>
       </div>
       <div class="editor">
         <div class="editor-gutter" id="gutter"><span>1</span></div>
