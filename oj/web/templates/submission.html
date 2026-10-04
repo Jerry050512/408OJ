@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}提交 #{{ s.id }}{% endblock %}
+{% block content %}
+<div class="subm-head">
+  <h1 style="margin:0">评测详情 <span class="muted mono" style="font-size:18px">#{{ s.id }}</span></h1>
+  <span class="verdict {{ verdict_meta[s.verdict][1] }}" style="font-size:15px;padding:6px 14px">
+    {{ verdict_meta[s.verdict][0] }}（{{ s.verdict }}）</span>
+  <span class="muted">通过 {{ s.passed }}/{{ s.total }} 测试点 · 最大耗时 {{ '%.0f'|format(s.max_time_ms) }}ms · 峰值 {{ s.max_mem_kb|int }}KB</span>
+  <span style="margin-left:auto"><a href="/p/{{ s.p.code }}">← 回到题目</a></span>
+</div>
+<p class="muted">
+  题目 <a href="/p/{{ s.p.code }}"><b>{{ s.p.title }}</b></a>
+  {% if s.p.kind == 'exam' %} <span class="badge b-exam">{{ s.p.year }} {{ s.p.exam_no }}</span>{% endif %}
+  · 提交于 {{ s.created_at | round(0) | int | datetime }}
+</p>
+
+{% if s.policy_issues %}
+<div class="notice">
+  <b>408 合规检查未通过：</b>
+  <ul style="margin:6px 0 0">
+    {% for i in s.policy_issues %}<li class="mono" style="font-size:12.5px">{{ i }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if s.compile_msg %}
+<div class="card">
+  <div class="card-title"><h3 style="margin:0">编译信息</h3></div>
+  <div class="compile-log">{{ s.compile_msg }}</div>
+</div>
+{% endif %}
+
+{% if s.results %}
+<div class="card">
+  <div class="card-title"><h3 style="margin:0">测试点详情（前 {{ s.results|length }} 个）</h3></div>
+  {% for r in s.results %}
+  <div class="tc-result">
+    <div class="tc-head">
+      <b>#{{ r.ord + 1 }}</b>
+      <span class="verdict {{ verdict_meta[r.verdict][1] if r.verdict in verdict_meta else 'v-se' }}">{{ r.verdict }}</span>
+      <span class="muted mono" style="font-size:12px">{{ '%.1f'|format(r.time_ms) }}ms · {{ r.mem_kb|int }}KB</span>
+      {% if r.is_sample %}<span class="badge" style="font-size:11px">样例</span>{% endif %}
+    </div>
+    {% if r.verdict != 'AC' %}
+    <div class="tc-io">
+      <div><h5>输入</h5><pre>{{ r.input }}</pre></div>
+      <div><h5>期望输出</h5><pre>{{ r.expected }}</pre></div>
+      <div><h5>你的输出</h5><pre>{{ r.actual }}</pre></div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title"><h3 style="margin:0">提交的代码</h3>
+    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="copyText(this, document.getElementById('code').textContent)">复制</button>
+    <form method="get" action="/p/{{ s.p.code }}" style="display:inline" id="restoreForm">
+      <button class="btn btn-sm" type="button" onclick="restoreCode()">恢复到编辑器</button>
+    </form>
+  </div>
+  <pre style="background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.8px;overflow-x:auto;margin:0"><code id="code">{{ s.code }}</code></pre>
+</div>
+<script>
+function restoreCode(){
+  localStorage.setItem('oj-code-{{ s.p.code }}', document.getElementById('code').textContent);
+  location.href = '/p/{{ s.p.code }}';
+}
+</script>
+{% endblock %}

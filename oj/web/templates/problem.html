@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}{{ p.title }}{% endblock %}
+{% block content %}
+<div class="problem-head">
+  {% if p.kind=='exam' %}<span class="badge b-exam">{{ p.year }} {{ p.exam_no }}</span>{% endif %}
+  <h1>{{ p.title }}</h1>
+  {% if status == 'solved' %}<span class="badge b-prac">已通过 ✓</span>
+  {% elif status == 'tried' %}<span class="badge" style="color:var(--amber-400);border-color:rgba(245,158,11,.4)">尝试过</span>{% endif %}
+</div>
+<div class="meta-row">
+  <span>章节 <b>{{ p.chapter }}</b></span>
+  <span>难度 <b class="diff diff-{{ p.difficulty }}">{{ ['','容易','中等','困难'][p.difficulty] }}</b></span>
+  <span>重要度 <b class="stars">{{ stars(p.importance) | safe }}</b></span>
+  <span>时限 <b class="mono">{{ p.time_limit_ms }}ms</b></span>
+  <span>内存 <b class="mono">{{ (p.memory_limit_kb/1024)|int }}MB</b></span>
+  <span>语言 <b>C11（408 合规：{{ '严格级' if p.policy.level=='strict' else '标准级' }}）</b></span>
+  <span style="margin-left:auto"><a href="/p/{{ p.code }}/solution">题解 →</a></span>
+</div>
+<div class="tabs" style="margin-top:10px">
+  <span class="tab active">题目</span>
+  <a class="tab" href="/p/{{ p.code }}/solution">题解</a>
+</div>
+
+<div class="problem-grid">
+  <!-- 左：题目描述 -->
+  <div>
+    <div class="card prose">
+      <h2>题目描述</h2>
+      {{ p.statement_md | md | safe }}
+      <h2>输入格式</h2>
+      {{ p.input_md | md | safe }}
+      <h2>输出格式</h2>
+      {{ p.output_md | md | safe }}
+      <h2>样例</h2>
+      {% for s in p.samples %}
+      <div class="sample-block">
+        <div class="sample-head">
+          <span>样例 {{ loop.index }} 输入</span>
+          <button class="copy-btn" onclick="copyText(this, {{ s.input | tojson }})">复制</button>
+        </div>
+        <pre>{{ s.input }}</pre>
+        <div class="sample-head"><span>样例 {{ loop.index }} 输出</span>
+          <button class="copy-btn" onclick="copyText(this, {{ s.output | tojson }})">复制</button></div>
+        <pre>{{ s.output }}</pre>
+      </div>
+      {% endfor %}
+      <div class="notice">
+        <b>408 合规约束：</b>仅允许头文件白名单
+        {% if p.policy.level == 'strict' %}
+        （严格级）：<code>stdio.h stdlib.h limits.h stddef.h stdbool.h float.h</code>
+        {% else %}
+        （标准级）：<code>stdio.h stdlib.h string.h ctype.h math.h limits.h stddef.h stdbool.h float.h</code>
+        {% endif %}
+        ；禁用文件 I/O、进程/系统调用、<code>gets</code>、<code>qsort</code>、<code>bsearch</code>。
+        违规将判为编译失败并在评测详情中列出。
+      </div>
+    </div>
+
+    {% if subs %}
+    <div class="card" style="margin-top:18px">
+      <div class="card-title"><h3 style="margin:0">我的提交</h3>
+        <a class="btn btn-ghost btn-sm" style="margin-left:auto" href="/submissions?problem={{ p.code }}">全部</a></div>
+      {% for s in subs %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <a class="mono" href="/s/{{ s.id }}" style="font-size:13px">#{{ s.id }}</a>
+        <span class="muted" style="font-size:12.5px">{{ s.created_at | round(0) | int | datetime }}</span>
+        <span class="mono muted" style="font-size:12.5px">{{ s.passed }}/{{ s.total }} 点</span>
+        <span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 右：编辑器 -->
+  <div style="position:sticky;top:76px">
+    <div class="editor-wrap">
+      <div class="editor-toolbar">
+        <span class="dot" style="background:#f87171"></span>
+        <span class="dot" style="background:#fbbf24"></span>
+        <span class="dot" style="background:#34d399"></span>
+        <span class="fn">main.c — C11 · {{ p.code }}</span>
+        <span style="margin-left:auto" class="muted" id="saveState"></span>
+      </div>
+      <div class="editor">
+        <div class="editor-gutter" id="gutter"><span>1</span></div>
+        <div class="editor-main">
+          <pre class="editor-highlight" id="hlScroll"><code id="hl"></code></pre>
+          <textarea class="editor-input" id="code" spellcheck="false"
+                    placeholder="在这里写 C 代码…（自动保存到浏览器本地）"></textarea>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="btn btn-primary" id="btnSubmit" onclick="submitCode()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          提交评测
+        </button>
+        <button class="btn" id="btnSample" onclick="runSample()">运行样例 1</button>
+        <button class="btn btn-ghost" onclick="toggleCustom()">自定义输入</button>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" onclick="resetCode()">重置代码</button>
+      </div>
+      <div class="run-panel" id="runPanel"></div>
+      <div id="customBox" style="display:none;border-top:1px solid var(--border);padding:12px;background:var(--th-bg)">
+        <div class="muted" style="font-size:12.5px;margin-bottom:6px">自定义输入（stdin）</div>
+        <textarea id="customInput" rows="4" style="width:100%;font-family:var(--mono);font-size:12.5px"></textarea>
+        <div style="margin-top:8px"><button class="btn btn-sm" onclick="runCustom()">运行</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/editor.js"></script>
+<script>
+const PCODE = {{ p.code | tojson }};
+const SAMPLES = {{ p.samples | tojson }};
+const LANG_HINT = {{ p.lang_hint | tojson }};
+initEditor(PCODE, LANG_HINT);
+
+function showRun(html){ const rp = document.getElementById('runPanel'); rp.classList.add('show'); rp.innerHTML = html; }
+function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function verdictBadge(v, label){ const m = {AC:'v-ac',WA:'v-wa',TLE:'v-tle',RE:'v-re',CE:'v-ce',SE:'v-se',MLE:'v-tle'}; return '<span class="verdict ' + (m[v]||'v-se') + '">' + esc(v) + '</span> ' + esc(label||''); }
+
+async function submitCode(){
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  showRun('<span class="spin"></span> 评测中…');
+  try {
+    const r = await fetch('/api/v1/problems/' + PCODE + '/submit', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code: getCode()})
+    });
+    const j = await r.json();
+    if (!r.ok){ showRun(verdictBadge('SE', j.error || '提交失败')); return; }
+    let html = '<div class="row">' + verdictBadge(j.verdict) +
+      ' <span class="muted">通过 ' + j.passed + '/' + j.total + ' 测试点 · 最大耗时 ' + j.max_time_ms + 'ms · 峰值内存 ' + j.max_mem_kb + 'KB</span></div>';
+    if (j.policy_issues && j.policy_issues.length)
+      html += '<div class="row muted">' + j.policy_issues.map(esc).join('<br>') + '</div>';
+    if (j.compile_msg)
+      html += '<pre>' + esc(j.compile_msg.slice(0, 3000)) + '</pre>';
+    html += '<div class="row"><a href="/s/' + j.id + '">查看评测详情 #' + j.id + ' →</a></div>';
+    showRun(html);
+    if (j.verdict === 'AC') setTimeout(() => location.reload(), 900);
+  } catch(e) {
+    showRun(verdictBadge('SE', '网络错误：' + e.message));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function doRun(input, title){
+  showRun('<span class="spin"></span> ' + esc(title) + ' 编译运行中…');
+  try {
+    const r = await fetch('/api/v1/run', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({problem_code: PCODE, code: getCode(), input: input})
+    });
+    const j = await r.json();
+    if (!r.ok){ showRun(verdictBadge('SE', j.error || '运行失败')); return; }
+    if (j.stage === 'policy'){ showRun(verdictBadge('CE', '408 合规检查未通过') + '<pre>' + esc(j.message) + '</pre>'); return; }
+    if (j.stage === 'compile'){ showRun(verdictBadge('CE', '编译失败') + '<pre>' + esc(j.message) + '</pre>'); return; }
+    let html = '<div class="row">' + verdictBadge(j.verdict) + ' <span class="muted">' + j.time_ms + 'ms / ' + j.mem_kb + 'KB</span></div>';
+    html += '<div class="row muted">标准输出</div><pre>' + esc(j.stdout) + '</pre>';
+    if (j.stderr) html += '<div class="row muted">标准错误</div><pre>' + esc(j.stderr) + '</pre>';
+    if (j.compile_warnings) html += '<div class="row muted">编译警告</div><pre>' + esc(j.compile_warnings) + '</pre>';
+    showRun(html);
+  } catch(e) { showRun(verdictBadge('SE', '网络错误：' + e.message)); }
+}
+function runSample(){ if (SAMPLES.length) doRun(SAMPLES[0].input, '样例 1'); else showRun('本题无样例'); }
+function toggleCustom(){ const b = document.getElementById('customBox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
+function runCustom(){ doRun(document.getElementById('customInput').value, '自定义输入'); }
+</script>
+{% endblock %}

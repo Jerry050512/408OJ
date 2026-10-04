@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}提交记录{% endblock %}
+{% block content %}
+<h1 style="margin-bottom:4px">提交记录</h1>
+<p class="muted" style="margin-top:0">
+  {% if problem %}题目 <a href="/p/{{ problem.code }}">{{ problem.title }}</a> 的提交 · {% endif %}
+  共 {{ subs|length }} 条
+</p>
+<div class="card" style="padding:10px 0">
+  <div class="table-wrap" style="border:0">
+  <table class="tb">
+    <thead><tr><th style="width:70px">编号</th><th>题目</th><th style="width:90px">结果</th>
+      <th style="width:90px">测试点</th><th style="width:90px">耗时</th><th style="width:110px">时间</th></tr></thead>
+    <tbody>
+      {% for s in subs %}
+      <tr>
+        <td><a class="mono" href="/s/{{ s.id }}">#{{ s.id }}</a></td>
+        <td class="t-title"><a href="/p/{{ s.problem_code }}">{{ s.problem_title }}</a></td>
+        <td><span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span></td>
+        <td class="mono muted">{{ s.passed }}/{{ s.total }}</td>
+        <td class="mono muted">{{ '%.0f' | format(s.max_time_ms) }}ms</td>
+        <td class="muted" style="font-size:13px">{{ s.created_at | round(0) | int | datetime }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6"><div class="empty"><div class="icon">📭</div>暂无提交记录</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}
