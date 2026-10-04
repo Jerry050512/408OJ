@@ -1,0 +1,636 @@
+[
+  {
+    "code": "mock-01",
+    "title": "链表分组逆置",
+    "kind": "mock",
+    "chapter": "线性表",
+    "tags": [
+      "单链表",
+      "就地逆置"
+    ],
+    "difficulty": 2,
+    "importance": 5,
+    "statement_md": "给定一个长度为 n 的单链表和正整数 k，将链表中每 k 个结点分为一组，对每组做就地逆置；若最后一组不足 k 个结点，则保持原序不变。\n\n例如链表 1→2→3→4→5，k=2，逆置后为 2→1→4→3→5。\n\n为便于评测，输入输出均用数组形式表示链表内容。",
+    "input_md": "第一行两个整数 n 和 k（1 ≤ n ≤ 10⁵，1 ≤ k ≤ n）。\n第二行 n 个整数，表示链表各结点的值。",
+    "outputE_md": "输出一行：分组逆置后的序列，空格分隔。",
+    "output_md": "输出一行：分组逆置后的序列，空格分隔。",
+    "samples": [
+      {
+        "input": "5 2\n1 2 3 4 5\n",
+        "output": "2 1 4 3 5\n"
+      },
+      {
+        "input": "7 3\n1 2 3 4 5 6 7\n",
+        "output": "3 2 1 6 5 4 7\n"
+      },
+      {
+        "input": "4 4\n10 20 30 40\n",
+        "output": "40 30 20 10\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\nstatic void reverse(int a[], int l, int r){\n    while (l < r){ int t = a[l]; a[l] = a[r]; a[r] = t; l++; r--; }\n}\n\nint main(void){\n    int n, k;\n    if (scanf(\"%d %d\", &n, &k) != 2) return 0;\n    int *a = (int*)malloc(sizeof(int) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    for (int i = 0; i + k <= n; i += k)\n        reverse(a, i, i + k - 1);\n    for (int i = 0; i < n; i++){\n        if (i) putchar(' ');\n        printf(\"%d\", a[i]);\n    }\n    putchar('\\n');\n    free(a);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n单链表就地逆置（王道 2.3）。分组逆置是链表逆置的自然推广，408 常考变体。\n\n## 思路\n\n遍历链表，每数 k 个结点为一组，对该组做就地逆置。最后一组不足 k 个时保持原序不动。\n\n## 复杂度\n\n时间 O(n)，空间 O(1)。\n\n## 考场提示\n\n- 链表版本需维护每组的前驱指针，逆置后正确接回主链；\n- 最后一组不足 k 个不逆置；\n- k=1 时序列不变，k≥n 时整体逆置。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": "#include <stdio.h>\n#include <stdlib.h>\n\nvoid reverse(int a[], int l, int r);\n\nint main(void){\n    int n, k;\n    scanf(\"%d %d\", &n, &k);\n    /* TODO */\n    return 0;\n}\n"
+  },
+  {
+    "code": "mock-02",
+    "title": "数组循环右移k位",
+    "kind": "mock",
+    "chapter": "线性表",
+    "tags": [
+      "顺序表",
+      "三次逆置"
+    ],
+    "difficulty": 2,
+    "importance": 4,
+    "statement_md": "将长度为 n 的数组 A 循环右移 k 位。要求空间复杂度 O(1)，使用**三次逆置法**实现。\n\n例如 A={1,2,3,4,5,6}，k=2，右移后 A={5,6,1,2,3,4}。",
+    "input_md": "第一行两个整数 n 和 k（1 ≤ n ≤ 10⁵，0 ≤ k ≤ 10⁹）。\n第二行 n 个整数。",
+    "output_md": "输出一行：循环右移后的数组，空格分隔。",
+    "samples": [
+      {
+        "input": "6 2\n1 2 3 4 5 6\n",
+        "output": "5 6 1 2 3 4\n"
+      },
+      {
+        "input": "5 0\n10 20 30 40 50\n",
+        "output": "10 20 30 40 50\n"
+      },
+      {
+        "input": "4 1\n1 2 3 4\n",
+        "output": "4 1 2 3\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\nstatic void reverse(int a[], int l, int r){\n    while (l < r){ int t = a[l]; a[l] = a[r]; a[r] = t; l++; r--; }\n}\n\nint main(void){\n    int n, k;\n    if (scanf(\"%d %d\", &n, &k) != 2) return 0;\n    int *a = (int*)malloc(sizeof(int) * (n > 0 ? n : 1));\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    k = k % n;\n    reverse(a, 0, n - 1);\n    reverse(a, 0, k - 1);\n    reverse(a, k, n - 1);\n    for (int i = 0; i < n; i++){ if (i) putchar(' '); printf(\"%d\", a[i]); }\n    putchar('\\n');\n    free(a);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n顺序表三次逆置（王道 2.2）。循环移位是 408 选择题和大题的高频考点。\n\n## 思路\n\n将数组循环右移 k 位等价于三次逆置：\n1. 整体逆置 [0, n-1]\n2. 前 k 个逆置 [0, k-1]\n3. 后 n-k 个逆置 [k, n-1]\n\n## 复杂度\n\n时间 O(n)，空间 O(1)。\n\n## 考场提示\n\n- k 可能大于 n，先取 k = k % n；\n- 三次逆置的顺序不能乱：先整体再分段。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-03",
+    "title": "两个升序数组的中位数",
+    "kind": "mock",
+    "chapter": "查找",
+    "tags": [
+      "二分查找",
+      "中位数"
+    ],
+    "difficulty": 3,
+    "importance": 5,
+    "statement_md": "给定两个升序排列的整数数组 A 和 B，长度分别为 n 和 m。将 A 和 B 合并后，求其中位数（下中位数，即第 ⌊(n+m+1)/2⌋ 小的元素）。\n\n要求时间复杂度优于 O(n+m)（评测接受 O(n+m) 归并法）。",
+    "input_md": "第一行两个整数 n 和 m（1 ≤ n, m ≤ 10⁵）。\n第二行 n 个升序整数（数组 A）。\n第三行 m 个升序整数（数组 B）。",
+    "output_md": "输出一个整数：合并后的中位数。",
+    "samples": [
+      {
+        "input": "3 3\n1 3 5\n2 4 6\n",
+        "output": "3\n"
+      },
+      {
+        "input": "2 3\n1 5\n2 3 4\n",
+        "output": "3\n"
+      },
+      {
+        "input": "1 1\n10\n20\n",
+        "output": "10\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\nint main(void){\n    int n, m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 0;\n    int *a = (int*)malloc(sizeof(int) * (n > 0 ? n : 1));\n    int *b = (int*)malloc(sizeof(int) * (m > 0 ? m : 1));\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    for (int i = 0; i < m; i++) scanf(\"%d\", &b[i]);\n    int total = n + m, target = (total - 1) / 2;\n    int i = 0, j = 0, cnt = 0, val = 0;\n    while (cnt <= target){\n        if (i < n && (j >= m || a[i] <= b[j])) val = a[i++];\n        else val = b[j++];\n        cnt++;\n    }\n    printf(\"%d\\n\", val);\n    free(a); free(b);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n二分查找 / 中位数（王道 4.3）。两个有序序列找中位数是 408 经典题型。\n\n## 思路\n\n归并法：双指针模拟二路归并，走到第 ⌊(n+m-1)/2⌋ 个元素即为中位数。\n\n## 复杂度\n\n归并法：时间 O(n+m)，空间 O(1)。二分法：时间 O(log min(n,m))。\n\n## 考场提示\n\n- 中位数下标为 ⌊(total-1)/2⌋（0-indexed）；\n- 408 选择题常考等长数组的中位数变体。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-04",
+    "title": "链表删除所有值为x的结点",
+    "kind": "mock",
+    "chapter": "线性表",
+    "tags": [
+      "单链表",
+      "删除"
+    ],
+    "difficulty": 1,
+    "importance": 4,
+    "statement_md": "给定一个带头结点的单链表和整数 x，删除链表中所有值等于 x 的结点（释放空间）。输出删除后的链表。\n\n为便于评测，输入输出均用数组形式表示链表内容。",
+    "input_md": "第一行两个整数 n 和 x（1 ≤ n ≤ 10⁵）。\n第二行 n 个整数，表示链表各结点的值。",
+    "output_md": "输出一行：删除后的序列；表空则输出一个空行。",
+    "samples": [
+      {
+        "input": "5 3\n1 3 2 3 4\n",
+        "output": "1 2 4\n"
+      },
+      {
+        "input": "3 5\n1 2 3\n",
+        "output": "1 2 3\n"
+      },
+      {
+        "input": "2 1\n1 1\n",
+        "output": "\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Node { int data; struct Node *next; } Node;\n\nint main(void){\n    int n, x;\n    if (scanf(\"%d %d\", &n, &x) != 2) return 0;\n    Node head; head.next = NULL;\n    Node *tail = &head;\n    for (int i = 0; i < n; i++){\n        Node *p = (Node*)malloc(sizeof(Node));\n        scanf(\"%d\", &p->data); p->next = NULL;\n        tail->next = p; tail = p;\n    }\n    Node *prev = &head, *cur = head.next;\n    while (cur){\n        if (cur->data == x){ prev->next = cur->next; free(cur); cur = prev->next; }\n        else { prev = cur; cur = cur->next; }\n    }\n    int first = 1;\n    for (Node *p = head.next; p; p = p->next){\n        if (!first) putchar(' ');\n        printf(\"%d\", p->data); first = 0;\n    }\n    putchar('\\n');\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n单链表删除（王道 2.3）。逐结点遍历，值等于 x 则摘除并释放。\n\n## 思路\n\nprev/cur 双指针：cur->data == x 时，prev->next = cur->next，free(cur)；否则 prev/cur 同步前进。\n\n## 复杂度\n\n时间 O(n)，空间 O(1)。\n\n## 考场提示\n\n- 带头结点可避免删首结点的特殊处理；\n- 2015 年真题考的是\"删绝对值重复\"，本题是其简化版。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-05",
+    "title": "数组中超过⌊n/k⌋的众数",
+    "kind": "mock",
+    "chapter": "线性表",
+    "tags": [
+      "顺序表",
+      "摩尔投票"
+    ],
+    "difficulty": 3,
+    "importance": 4,
+    "statement_md": "给定长度为 n 的整数数组 A 和正整数 k，找出 A 中所有出现次数严格超过 ⌊n/k⌋ 的元素，按升序输出。\n\n2013 年真题第 41 题是 k=2 的特例（Boyer-Moore 投票法），本题为其推广。",
+    "input_md": "第一行两个整数 n 和 k（1 ≤ n ≤ 10⁵，2 ≤ k ≤ 10）。\n第二行 n 个整数。",
+    "output_md": "输出一行：所有满足条件的元素，升序排列，空格分隔；无满足条件的元素输出空行。",
+    "samples": [
+      {
+        "input": "7 3\n1 1 1 2 2 3 3\n",
+        "output": "1\n"
+      },
+      {
+        "input": "7 2\n1 1 1 1 2 3 4\n",
+        "output": "1\n"
+      },
+      {
+        "input": "4 3\n1 2 3 4\n",
+        "output": "\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\nint main(void){\n    int n, k;\n    if (scanf(\"%d %d\", &n, &k) != 2) return 0;\n    int *a = (int*)malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    /* insertion sort */\n    for (int i = 1; i < n; i++){\n        int key = a[i], j = i - 1;\n        while (j >= 0 && a[j] > key){ a[j+1] = a[j]; j--; }\n        a[j+1] = key;\n    }\n    int threshold = n / k, first = 1, i = 0;\n    while (i < n){\n        int j = i;\n        while (j < n && a[j] == a[i]) j++;\n        if (j - i > threshold){\n            if (!first) putchar(' ');\n            printf(\"%d\", a[i]); first = 0;\n        }\n        i = j;\n    }\n    putchar('\\n');\n    free(a);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n摩尔投票法的推广（王道 2.2）。k=2 即 2013 年真题的 Boyer-Moore 投票法。\n\n## 思路\n\n排序后一遍扫描统计每个值的频次，输出超过 ⌊n/k⌋ 的值。\n\n## 复杂度\n\n时间 O(n log n)，空间 O(1)。\n\n## 考场提示\n\n- 超过 ⌊n/k⌋ 的元素至多 k-1 个（鸽巢原理）；\n- 推广投票法可做到 O(n) 时间，但需第二遍验证。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-06",
+    "title": "有序数组去重",
+    "kind": "mock",
+    "chapter": "线性表",
+    "tags": [
+      "顺序表",
+      "双指针"
+    ],
+    "difficulty": 1,
+    "importance": 3,
+    "statement_md": "给定一个升序排列的整数数组，在原地去重（每个值只保留一个），输出去重后的数组。",
+    "input_md": "第一行整数 n（1 ≤ n ≤ 10⁵）。\n第二行 n 个升序整数。",
+    "output_md": "输出一行：去重后的数组，空格分隔。",
+    "samples": [
+      {
+        "input": "8\n1 1 2 2 3 3 3 4\n",
+        "output": "1 2 3 4\n"
+      },
+      {
+        "input": "3\n1 2 3\n",
+        "output": "1 2 3\n"
+      },
+      {
+        "input": "4\n5 5 5 5\n",
+        "output": "5\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n\nint main(void){\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    int a[100005];\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    int j = 0;\n    for (int i = 1; i < n; i++)\n        if (a[i] != a[j]) a[++j] = a[i];\n    for (int i = 0; i <= j; i++){ if (i) putchar(' '); printf(\"%d\", a[i]); }\n    putchar('\\n');\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n有序数组去重（王道 2.2）。双指针基本功。\n\n## 思路\n\n慢指针 j 指向已去重部分的末尾，快指针 i 扫描：a[i]!=a[j] 时 a[++j]=a[i]。\n\n## 复杂度\n\n时间 O(n)，空间 O(1)。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-07",
+    "title": "数组最长连续递增子序列",
+    "kind": "mock",
+    "chapter": "线性表",
+    "tags": [
+      "顺序表",
+      "一次遍历"
+    ],
+    "difficulty": 1,
+    "importance": 3,
+    "statement_md": "给定长度为 n 的整数数组，找出最长严格递增连续子数组的长度。",
+    "input_md": "第一行整数 n（1 ≤ n ≤ 10⁵）。\n第二行 n 个整数。",
+    "output_md": "输出一个整数：最长连续递增子序列的长度。",
+    "samples": [
+      {
+        "input": "6\n1 2 3 2 1 5\n",
+        "output": "3\n"
+      },
+      {
+        "input": "5\n5 4 3 2 1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "1\n42\n",
+        "output": "1\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n\nint main(void){\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 0;\n    int a[100005];\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    int best = 1, cur = 1;\n    for (int i = 1; i < n; i++){ if (a[i] > a[i-1]) cur++; else cur = 1; if (cur > best) best = cur; }\n    printf(\"%d\\n\", best);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n一次遍历（王道 2.2）。最长连续递增子序列只需一遍扫描。\n\n## 思路\n\n维护当前连续递增长度 cur 和全局最大 best。\n\n## 复杂度\n\n时间 O(n)，空间 O(1)。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-08",
+    "title": "BST中第k小元素",
+    "kind": "mock",
+    "chapter": "树与二叉树",
+    "tags": [
+      "二叉搜索树",
+      "中序遍历"
+    ],
+    "difficulty": 2,
+    "importance": 5,
+    "statement_md": "给定一棵二叉搜索树的插入序列（关键字互不相同），按序列逐个插入构造 BST。求 BST 中第 k 小的元素（1-indexed）。",
+    "input_md": "第一行两个整数 n 和 k（1 ≤ k ≤ n ≤ 10⁵）。\n第二行 n 个互不相同的整数，为 BST 的插入序列。",
+    "output_md": "输出一个整数：第 k 小的元素。",
+    "samples": [
+      {
+        "input": "5 3\n4 2 6 1 3\n",
+        "output": "3\n"
+      },
+      {
+        "input": "3 1\n5 3 7\n",
+        "output": "3\n"
+      },
+      {
+        "input": "1 1\n42\n",
+        "output": "42\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Node { int data; struct Node *left, *right; } Node;\nstatic Node* insert(Node *t, int v){\n    if (!t){ Node *p = (Node*)malloc(sizeof(Node)); p->data = v; p->left = p->right = NULL; return p; }\n    if (v < t->data) t->left = insert(t->left, v);\n    else if (v > t->data) t->right = insert(t->right, v);\n    return t;\n}\nstatic int k, ans;\nstatic void inorder(Node *t){\n    if (!t || k <= 0) return;\n    inorder(t->left);\n    if (--k == 0){ ans = t->data; return; }\n    inorder(t->right);\n}\nint main(void){\n    int n;\n    if (scanf(\"%d %d\", &n, &k) != 2) return 0;\n    Node *root = NULL;\n    for (int i = 0; i < n; i++){ int v; scanf(\"%d\", &v); root = insert(root, v); }\n    inorder(root);\n    printf(\"%d\\n\", ans);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\nBST 中序遍历（王道 5.4）。BST 的中序序列即升序序列，第 k 小即中序第 k 个。\n\n## 思路\n\n中序遍历，用全局计数器 k 递减，减到 0 时记录答案。\n\n## 复杂度\n\n时间 O(n)，空间 O(h)。\n\n## 考场提示\n\n- 也可用子树大小加速到 O(h)，但需要维护 size 字段。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-09",
+    "title": "判断二叉树是否对称",
+    "kind": "mock",
+    "chapter": "树与二叉树",
+    "tags": [
+      "二叉树",
+      "递归"
+    ],
+    "difficulty": 2,
+    "importance": 4,
+    "statement_md": "给定层序数组表示的二叉树（-1 表示空），判定它是否关于根结点对称（即左子树与右子树互为镜像）。",
+    "input_md": "第一行整数 n。\n第二行 n 个整数的层序序列。",
+    "output_md": "输出 1（对称）或 0。",
+    "samples": [
+      {
+        "input": "7\n1 2 2 3 4 4 3\n",
+        "output": "1\n"
+      },
+      {
+        "input": "5\n1 2 3 -1 4\n",
+        "output": "0\n"
+      },
+      {
+        "input": "1\n5\n",
+        "output": "1\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\nint a[100005], n;\nstatic int sym(int i, int j){\n    int li = (i < n && a[i] != -1), lj = (j < n && a[j] != -1);\n    if (!li && !lj) return 1;\n    if (!li || !lj) return 0;\n    if (a[i] != a[j]) return 0;\n    return sym(2*i+1, 2*j+2) && sym(2*i+2, 2*j+1);\n}\nint main(void){\n    if (scanf(\"%d\", &n) != 1) return 0;\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    if (n == 0 || a[0] == -1) printf(\"1\\n\");\n    else printf(\"%d\\n\", sym(1, 2));\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n二叉树递归判定（王道 5.3）。对称 = 左子树与右子树互为镜像。\n\n## 思路\n\n递归检查：sym(A, B) = A.val==B.val && sym(A.left, B.right) && sym(A.right, B.left)。\n\n## 复杂度\n\n时间 O(n)，空间 O(h)。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-10",
+    "title": "二叉树叶子结点数",
+    "kind": "mock",
+    "chapter": "树与二叉树",
+    "tags": [
+      "二叉树",
+      "递归"
+    ],
+    "difficulty": 1,
+    "importance": 3,
+    "statement_md": "给定层序数组表示的二叉树（-1 表示空），统计叶子结点的个数。",
+    "input_md": "第一行整数 n。\n第二行 n 个整数的层序序列。",
+    "output_md": "输出一个整数：叶子结点数。",
+    "samples": [
+      {
+        "input": "7\n1 2 3 -1 -1 4 5\n",
+        "output": "3\n"
+      },
+      {
+        "input": "1\n10\n",
+        "output": "1\n"
+      },
+      {
+        "input": "3\n1 -1 2\n",
+        "output": "1\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\nint a[100005], n;\nstatic int leaf(int i){\n    if (i >= n || a[i] == -1) return 0;\n    int l = 2*i+1, r = 2*i+2;\n    int hl = (l < n && a[l] != -1), hr = (r < n && a[r] != -1);\n    if (!hl && !hr) return 1;\n    return leaf(l) + leaf(r);\n}\nint main(void){\n    if (scanf(\"%d\", &n) != 1) return 0;\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    printf(\"%d\\n\", leaf(0));\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n二叉树递归（王道 5.3）。叶子 = 无左右孩子的结点。\n\n## 复杂度\n\n时间 O(n)，空间 O(h)。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-11",
+    "title": "二叉树的最大路径和",
+    "kind": "mock",
+    "chapter": "树与二叉树",
+    "tags": [
+      "二叉树",
+      "递归",
+      "全局最优"
+    ],
+    "difficulty": 3,
+    "importance": 4,
+    "statement_md": "给定层序数组表示的二叉树（-1 表示空，结点值可负），求一条路径使得路径上结点值之和最大。路径至少包含一个结点，且路径中同一结点只出现一次。",
+    "input_md": "第一行整数 n。\n第二行 n 个整数的层序序列（-1 表示空）。",
+    "output_md": "输出一个整数：最大路径和。",
+    "samples": [
+      {
+        "input": "7\n1 2 3 -1 -1 4 5\n",
+        "output": "12\n"
+      },
+      {
+        "input": "3\n10 9 20\n",
+        "output": "39\n"
+      },
+      {
+        "input": "1\n-3\n",
+        "output": "-3\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\nint a[100005], n, best;\nstatic int dfs(int i){\n    if (i >= n || a[i] == -1) return 0;\n    int l = dfs(2*i+1), r = dfs(2*i+2);\n    if (l < 0) l = 0; if (r < 0) r = 0;\n    int path = a[i] + l + r;\n    if (path > best) best = path;\n    int ret = a[i] + (l > r ? l : r);\n    return ret > 0 ? ret : 0;\n}\nint main(void){\n    if (scanf(\"%d\", &n) != 1) return 0;\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    best = -100000000;\n    dfs(0);\n    printf(\"%d\\n\", best);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n二叉树递归 + 全局最优（王道 5.3）。经典\"最大路径和\"问题。\n\n## 思路\n\ndfs(i) 返回从结点 i 出发向下延伸的最大路径和（可为 0 表示不选）。同时更新全局 best = max(best, a[i] + left + right)。\n\n## 复杂度\n\n时间 O(n)，空间 O(h)。\n\n## 考场提示\n\n- 负数结点可能不选，left/right, right) 与 0 取 max；\n- best 初始化要足够小。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-12",
+    "title": "BST删除关键字",
+    "kind": "mock",
+    "chapter": "树与二叉树",
+    "tags": [
+      "二叉搜索树",
+      "删除"
+    ],
+    "difficulty": 3,
+    "importance": 5,
+    "statement_md": "给定一棵 BST 的插入序列和关键字 x，先按序列构造 BST，再删除关键字为 x 的结点，输出删除后的中序序列。\n\n删除规则：若 x 是叶子直接删；若 x 只有一棵子树，用子树替代；若 x 有两棵子树，用**直接后继**（右子树最左结点）替代。",
+    "input_md": "第一行两个整数 n 和 x（1 ≤ n ≤ 10⁵）。\n第二行 n 个互不相同的整数，为 BST 的插入序列。",
+    "output_md": "输出一行：删除后的中序序列，空格分隔；树空则输出空行。",
+    "samples": [
+      {
+        "input": "5 3\n4 2 6 1 3\n",
+        "output": "1 2 4 6\n"
+      },
+      {
+        "input": "3 5\n5 3 7\n",
+        "output": "3 7\n"
+      },
+      {
+        "input": "1 1\n1\n",
+        "output": "\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Node { int data; struct Node *left, *right; } Node;\nstatic Node* ins(Node *t, int v){\n    if (!t){ Node *p = (Node*)malloc(sizeof(Node)); p->data = v; p->left = p->right = NULL; return p; }\n    if (v < t->data) t->left = ins(t->left, v);\n    else if (v > t->data) t->right = ins(t->right, v);\n    return t;\n}\nstatic Node* del(Node *t, int v){\n    if (!t) return NULL;\n    if (v < t->data) t->left = del(t->left, v);\n    else if (v > t->data) t->right = del(t->right, v);\n    else {\n        if (!t->left) return t->right;\n        if (!t->right) return t->left;\n        Node *s = t->right;\n        while (s->left) s = s->left;\n        t->data = s->data;\n        t->right = del(t->right, s->data);\n    }\n    return t;\n}\nstatic int first;\nstatic void inord(Node *t){\n    if (!t) return;\n    inord(t->left);\n    if (!first) putchar(' ');\n    printf(\"%d\", t->data); first = 0;\n    inord(t->right);\n}\nint main(void){\n    int n, x;\n    if (scanf(\"%d %d\", &n, &x) != 2) return 0;\n    Node *root = NULL;\n    for (int i = 0; i < n; i++){ int v; scanf(\"%d\", &v); root = ins(root, v); }\n    root = del(root, x);\n    first = 1;\n    inord(root);\n    putchar('\\n');\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\nBST 删除（王道 5.4）。408 选择题和大题的高频考点。\n\n## 思路\n\n三种情况：叶子直接删；单子树替代；双子树用直接后继替代。\n\n## 复杂度\n\n时间 O(h)，空间 O(h)。\n\n## 考场提示\n\n- 删双子树结点时，用直接后继（右子树最左）或直接前驱（左子树最右）均可；\n- 408 真题常考删除后的树形态。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-13",
+    "title": "有向图欧拉回路判定",
+    "kind": "mock",
+    "chapter": "图",
+    "tags": [
+      "欧拉回路",
+      "入度出度",
+      "连通性"
+    ],
+    "difficulty": 2,
+    "importance": 4,
+    "statement_md": "给定一个有向图（n 个顶点，m 条边），判定该图是否存在欧拉回路。\n\n有向图存在欧拉回路的充要条件：\n1. 每个顶点的入度等于出度；\n2. 所有具有非零度数的顶点属于同一个弱连通分量。",
+    "input_md": "第一行两个整数 n 和 m（1 ≤ n ≤ 100，0 ≤ m ≤ n(n-1)）。\n接下来 m 行，每行两个整数 u v，表示有向边 u→v（0 ≤ u, v < n，u≠v）。",
+    "output_md": "输出 1（存在欧拉回路）或 0。",
+    "samples": [
+      {
+        "input": "3 3\n0 1\n1 2\n2 0\n",
+        "output": "1\n"
+      },
+      {
+        "input": "3 2\n0 1\n1 2\n",
+        "output": "0\n"
+      },
+      {
+        "input": "1 0\n",
+        "output": "1\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <string.h>\n\nint adj[105][105], radj[105][105];\nint indeg[105], outdeg[105], vis[105];\nint n;\n\nvoid bfs(int s){\n    int q[105], h = 0, t = 0;\n    q[t++] = s; vis[s] = 1;\n    while (h < t){\n        int u = q[h++];\n        for (int v = 0; v < n; v++){\n            if (!vis[v] && (adj[u][v] || radj[u][v])){ vis[v] = 1; q[t++] = v; }\n        }\n    }\n}\n\nint main(void){\n    int m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 0;\n    memset(adj, 0, sizeof(adj)); memset(radj, 0, sizeof(radj));\n    memset(indeg, 0, sizeof(indeg)); memset(outdeg, 0, sizeof(outdeg));\n    for (int i = 0; i < m; i++){\n        int u, v; scanf(\"%d %d\", &u, &v);\n        adj[u][v] = 1; radj[v][u] = 1;\n        outdeg[u]++; indeg[v]++;\n    }\n    for (int i = 0; i < n; i++)\n        if (indeg[i] != outdeg[i]){ printf(\"0\\n\"); return 0; }\n    memset(vis, 0, sizeof(vis));\n    int start = -1;\n    for (int i = 0; i < n; i++)\n        if (indeg[i] + outdeg[i] > 0){ start = i; break; }\n    if (start == -1){ printf(\"1\\n\"); return 0; }\n    bfs(start);\n    for (int i = 0; i < n; i++)\n        if ((indeg[i] + outdeg[i] > 0) && !vis[i]){ printf(\"0\\n\"); return 0; }\n    printf(\"1\\n\");\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n欧拉回路判定（王道 6.3）。有向图欧拉回路 = 入度=出度 + 弱连通。\n\n## 思路\n\n1. 检查每个顶点入度=出度；2. 在无向化图上 BFS 检查非零度顶点连通。\n\n## 复杂度\n\n时间 O(n²+m)，空间 O(n²)。\n\n## 考场提示\n\n- 有向图用弱连通（忽略方向），无向图用连通即可；\n- 孤立顶点（度=0）不影响欧拉回路。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-14",
+    "title": "无向图判断是否为树",
+    "kind": "mock",
+    "chapter": "图",
+    "tags": [
+      "树",
+      "连通性",
+      "并查集"
+    ],
+    "difficulty": 2,
+    "importance": 4,
+    "statement_md": "给定一个无向图（n 个顶点，m 条边），判定该图是否为一棵树。\n\n无向图是树的充要条件：连通且 m = n-1。",
+    "input_md": "第一行两个整数 n 和 m（1 ≤ n ≤ 100，0 ≤ m ≤ n(n-1)/2）。\n接下来 m 行，每行两个整数 u v，表示无向边（0 ≤ u, v < n，u≠v）。",
+    "output_md": "输出 1（是树）或 0。",
+    "samples": [
+      {
+        "input": "3 2\n0 1\n1 2\n",
+        "output": "1\n"
+      },
+      {
+        "input": "3 3\n0 1\n1 2\n0 2\n",
+        "output": "0\n"
+      },
+      {
+        "input": "4 2\n0 1\n2 3\n",
+        "output": "0\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n\nint parent[105];\nint find(int x){ while (parent[x] != x){ parent[x] = parent[parent[x]]; x = parent[x]; } return x; }\n\nint main(void){\n    int n, m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 0;\n    if (m != n - 1){ printf(\"0\\n\"); return 0; }\n    for (int i = 0; i < n; i++) parent[i] = i;\n    for (int i = 0; i < m; i++){\n        int u, v; scanf(\"%d %d\", &u, &v);\n        parent[find(u)] = find(v);\n    }\n    int roots = 0;\n    for (int i = 0; i < n; i++) if (find(i) == i) roots++;\n    printf(\"%d\\n\", roots == 1 ? 1 : 0);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n树的判定（王道 6.1）。无向图是树 ⟺ 连通且 m=n-1。\n\n## 思路\n\n先判 m=n-1，再用并查集判连通。\n\n## 复杂度\n\n时间 O(n+m·α(n))，空间 O(n)。\n\n## 考场提示\n\n- 也可用 DFS/BFS 判连通；\n- m=n-1 是必要条件，连通是充分条件，两者缺一不可。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-15",
+    "title": "有向图环检测",
+    "kind": "mock",
+    "chapter": "图",
+    "tags": [
+      "拓扑排序",
+      "环检测"
+    ],
+    "difficulty": 2,
+    "importance": 5,
+    "statement_md": "给定一个有向图（n 个顶点，m 条边），判定该图中是否存在有向环。",
+    "input_md": "第一行两个整数 n 和 m（1 ≤ n ≤ 100，0 ≤ m ≤ n(n-1)）。\n接下来 m 行，每行两个整数 u v，表示有向边 u→v（0 ≤ u, v < n）。",
+    "output_md": "输出 1（有环）或 0（无环/DAG）。",
+    "samples": [
+      {
+        "input": "2 1\n0 1\n",
+        "output": "0\n"
+      },
+      {
+        "input": "2 2\n0 1\n1 0\n",
+        "output": "1\n"
+      },
+      {
+        "input": "3 3\n0 1\n1 2\n0 2\n",
+        "output": "0\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <string.h>\n\nint adj[105][105], indeg[105];\n\nint main(void){\n    int n, m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 0;\n    memset(adj, 0, sizeof(adj)); memset(indeg, 0, sizeof(indeg));\n    for (int i = 0; i < m; i++){\n        int u, v; scanf(\"%d %d\", &u, &v);\n        adj[u][v] = 1; indeg[v]++;\n    }\n    int q[105], h = 0, t = 0;\n    for (int i = 0; i < n; i++)\n        if (indeg[i] == 0) q[t++] = i;\n    int cnt = 0;\n    while (h < t){\n        int u = q[h++]; cnt++;\n        for (int v = 0; v < n; v++)\n            if (adj[u][v]){ indeg[v]--; if (indeg[v] == 0) q[t++] = v; }\n    }\n    printf(\"%d\\n\", cnt < n ? 1 : 0);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n拓扑排序 / 环检测（王道 6.4）。Kahn 算法：拓扑排序能排出所有顶点 ⟺ DAG。\n\n## 思路\n\nKahn 算法（BFS 拓扑排序），若排序后顶点数 < n 则有环。\n\n## 复杂度\n\n时间 O(n²+m)，空间 O(n²)。\n\n## 考场提示\n\n- 也可用 DFS 三色标记法；\n- 环检测是拓扑排序的前提，408 常考。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-16",
+    "title": "无向图的割点",
+    "kind": "mock",
+    "chapter": "图",
+    "tags": [
+      "割点",
+      "连通性"
+    ],
+    "difficulty": 3,
+    "importance": 3,
+    "statement_md": "给定一个无向图（n 个顶点，m 条边），找出所有割点（articulation points）。\n\n割点：删除该顶点及其关联边后，图的连通分量数增加。",
+    "input_md": "第一行两个整数 n 和 m（2 ≤ n ≤ 100，0 ≤ m ≤ n(n-1)/2）。\n接下来 m 行，每行两个整数 u v，表示无向边（0 ≤ u, v < n，u≠v）。",
+    "output_md": "第一行输出割点数 k。第二行输出 k 个割点编号，升序排列，空格分隔。若无割点，第二行为空行。",
+    "samples": [
+      {
+        "input": "5 5\n0 1\n1 2\n2 3\n3 4\n4 1\n",
+        "output": "1\n1\n"
+      },
+      {
+        "input": "3 3\n0 1\n1 2\n0 2\n",
+        "output": "0\n\n"
+      },
+      {
+        "input": "4 3\n0 1\n1 2\n2 3\n",
+        "output": "2\n1 2\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <string.h>\n\nint adj[105][105];\nint parent[105];\nint find(int x){ while (parent[x] != x){ parent[x] = parent[parent[x]]; x = parent[x]; } return x; }\n\nint n;\nint components(int exclude){\n    for (int i = 0; i < n; i++) parent[i] = i;\n    for (int u = 0; u < n; u++){\n        if (u == exclude) continue;\n        for (int v = u + 1; v < n; v++)\n            if (v != exclude && adj[u][v]) parent[find(u)] = find(v);\n    }\n    int cnt = 0;\n    for (int i = 0; i < n; i++)\n        if (i != exclude && find(i) == i) cnt++;\n    return cnt;\n}\n\nint main(void){\n    int m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 0;\n    memset(adj, 0, sizeof(adj));\n    for (int i = 0; i < m; i++){\n        int u, v; scanf(\"%d %d\", &u, &v);\n        adj[u][v] = adj[v][u] = 1;\n    }\n    int base = components(-1);\n    int cuts[105], k = 0;\n    for (int v = 0; v < n; v++)\n        if (components(v) > base) cuts[k++] = v;\n    printf(\"%d\\n\", k);\n    for (int i = 0; i < k; i++){ if (i) putchar(' '); printf(\"%d\", cuts[i]); }\n    putchar('\\n');\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n割点（王道 6.3）。暴力法：对每个顶点检查删除后连通分量数是否增加。\n\n## 思路\n\n暴力：对每个顶点 v，用并查集计算删除 v 后的连通分量数，与原图比较。\n\n## 复杂度\n\n暴力法：时间 O(n²·m)，空间 O(n²)。Tarjan 算法：时间 O(n+m)。\n\n## 考场提示\n\n- Tarjan 算法用 dfn/low 数组，一次 DFS 即可；\n- 根结点是割点当且仅当至少有两棵子树。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-17",
+    "title": "堆中第k大元素",
+    "kind": "mock",
+    "chapter": "查找",
+    "tags": [
+      "堆",
+      "选择"
+    ],
+    "difficulty": 2,
+    "importance": 4,
+    "statement_md": "给定 n 个整数和正整数 k，求第 k 大的元素。\n\n要求使用堆（优先队列）实现：建小顶堆维护当前最大的 k 个元素，最终堆顶即为答案。",
+    "input_md": "第一行两个整数 n 和 k（1 ≤ k ≤ n ≤ 10⁵）。\n第二行 n 个整数。",
+    "output_md": "输出一个整数：第 k 大的元素。",
+    "samples": [
+      {
+        "input": "5 2\n3 1 4 1 5\n",
+        "output": "4\n"
+      },
+      {
+        "input": "6 1\n10 20 30 40 50 60\n",
+        "output": "60\n"
+      },
+      {
+        "input": "3 3\n7 7 7\n",
+        "output": "7\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <stdlib.h>\n\nint main(void){\n    int n, k;\n    if (scanf(\"%d %d\", &n, &k) != 2) return 0;\n    int *a = (int*)malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    /* selection sort descending, stop after k-th */\n    for (int i = 0; i < k; i++){\n        int mx = i;\n        for (int j = i + 1; j < n; j++)\n            if (a[j] > a[mx]) mx = j;\n        int t = a[i]; a[i] = a[mx]; a[mx] = t;\n    }\n    printf(\"%d\\n\", a[k - 1]);\n    free(a);\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n堆 / 选择问题（王道 4.4）。第 k 大 = 小顶堆维护前 k 大。\n\n## 思路\n\n维护大小为 k 的小顶堆，遍历数组：元素大于堆顶则替换。最终堆顶为第 k 大。\n\n## 复杂度\n\n时间 O(n log k)，空间 O(k)。\n\n## 考场提示\n\n- 快速选择可做到 O(n)，但堆方法更稳定；\n- 408 选择题常考建堆和调整过程。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  },
+  {
+    "code": "mock-18",
+    "title": "散列表构建与查找",
+    "kind": "mock",
+    "chapter": "查找",
+    "tags": [
+      "散列表",
+      "线性探测"
+    ],
+    "difficulty": 2,
+    "importance": 5,
+    "statement_md": "给定散列表长度 m、n 个关键字和 q 次查询。散列函数 H(key) = key mod m，冲突时使用**线性探测法**（探测步长为 1）。\n\n先依次插入 n 个关键字构建散列表，再对每个查询关键字输出其在散列表中的位置（0-indexed）；若不在表中输出 -1。",
+    "input_md": "第一行三个整数 m、n、q（m 为质数且 ≤ 100，1 ≤ n ≤ m，1 ≤ q ≤ 100）。\n第二行 n 个互不相同的整数（关键字）。\n第三行 q 个整数（查询关键字）。",
+    "output_md": "输出一行 q 个整数，空格分隔，分别为各查询关键字在散列表中的位置（-1 表示不存在）。",
+    "samples": [
+      {
+        "input": "7 5 3\n10 22 31 4 15\n22 31 99\n",
+        "output": "1 4 -1\n"
+      },
+      {
+        "input": "11 4 2\n33 10 55 44\n33 44\n",
+        "output": "0 2\n"
+      },
+      {
+        "input": "7 1 1\n7\n7\n",
+        "output": "0\n"
+      }
+    ],
+    "ref_c": "#include <stdio.h>\n#include <string.h>\n\nint main(void){\n    int m, n, q;\n    if (scanf(\"%d %d %d\", &m, &n, &q) != 3) return 0;\n    int table[105];\n    memset(table, -1, sizeof(table));\n    for (int i = 0; i < n; i++){\n        int k; scanf(\"%d\", &k);\n        int h = k % m;\n        while (table[h] != -1) h = (h + 1) % m;\n        table[h] = k;\n    }\n    int first = 1;\n    for (int i = 0; i < q; i++){\n        int k; scanf(\"%d\", &k);\n        int h = k % m, pos = -1;\n        for (int j = 0; j < m; j++){\n            if (table[h] == -1) break;\n            if (table[h] == k){ pos = h; break; }\n            h = (h + 1) % m;\n        }\n        if (!first) putchar(' ');\n        printf(\"%d\", pos); first = 0;\n    }\n    putchar('\\n');\n    return 0;\n}\n",
+    "solution_md": "## 考点\n\n散列表 / 线性探测（王道 4.5）。408 选择题极高频考点。\n\n## 思路\n\n插入：H(key) = key mod m，冲突则线性探测 (h+1) mod m。\n查找：从 H(key) 开始线性探测，遇到空位则不存在。\n\n## 复杂度\n\n查找平均 ASL ≈ (1 + 1/(1-α)) / 2（α 为装填因子）。\n\n## 考场提示\n\n- 408 常考手算散列表构建过程和 ASL；\n- 删除需懒标记，本题不涉及；\n- 线性探测易产生聚集，二次探测可缓解。",
+    "policy": {
+      "level": "standard"
+    },
+    "lang_hint": ""
+  }
+]
