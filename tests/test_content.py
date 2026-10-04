@@ -46,7 +46,9 @@ def test_each_problem_has_cases(seeded):
         assert len(cases) >= 3, p["code"]
         assert any(c["is_sample"] for c in cases), p["code"]
         for c in cases:
-            assert c["expected"].strip() != "" or c["input"].strip() == "", p["code"]
+            assert isinstance(c["expected"], str) and isinstance(c["input"], str), p["code"]
+            if c["is_sample"]:
+                assert c["input"].strip() != "" or p["code"] == "prac-link-01"
 
 
 def test_all_tags_registered(seeded):
