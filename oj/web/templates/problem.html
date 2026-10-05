@@ -4,8 +4,9 @@
 <div class="problem-head">
   {% if p.kind=='exam' %}<span class="badge b-exam">{{ p.year }} {{ p.exam_no }}</span>{% endif %}
   <h1>{{ p.title }}</h1>
-  {% if status == 'solved' %}<span class="badge b-prac">已通过 ✓</span>
-  {% elif status == 'tried' %}<span class="badge" style="color:var(--amber);border-color:color-mix(in srgb, var(--amber) 45%, transparent)">尝试过</span>{% endif %}
+  {% if status == 'solved' %}<span class="badge b-prac" id="statusBadge">已通过 ✓</span>
+  {% elif status == 'tried' %}<span class="badge" id="statusBadge" style="color:var(--amber);border-color:color-mix(in srgb, var(--amber) 45%, transparent)">尝试过</span>
+  {% else %}<span id="statusBadge"></span>{% endif %}
 </div>
 <div class="meta-row">
   <span>章节 <b>{{ p.chapter }}</b></span>
@@ -56,20 +57,20 @@
       </div>
     </div>
 
-    {% if subs %}
-    <div class="card" style="margin-top:18px">
+    <div class="card" style="margin-top:18px" id="mySubmissionsCard">
       <div class="card-title"><h3 style="margin:0">我的提交</h3>
         <a class="btn btn-ghost btn-sm" style="margin-left:auto" href="/submissions?problem={{ p.code }}">全部</a></div>
-      {% for s in subs %}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-        <a class="mono" href="/s/{{ s.id }}" style="font-size:13px">#{{ s.id }}</a>
-        <span class="muted" style="font-size:12.5px">{{ s.created_at | round(0) | int | datetime }}</span>
-        <span class="mono muted" style="font-size:12.5px">{{ s.passed }}/{{ s.total }} 点</span>
-        <span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span>
+      <div id="mySubmissionsList">
+        {% for s in subs %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <a class="mono" href="/s/{{ s.id }}" style="font-size:13px">#{{ s.id }}</a>
+          <span class="muted" style="font-size:12.5px">{{ s.created_at | round(0) | int | datetime }}</span>
+          <span class="mono muted" style="font-size:12.5px">{{ s.passed }}/{{ s.total }} 点</span>
+          <span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
-    {% endif %}
   </div>
 
   <!-- 右：编辑器 -->
@@ -114,6 +115,7 @@
 <script src="/static/js/editor.js"></script>
 <script>
 const PCODE = {{ p.code | tojson }};
+const PTITLE = {{ p.title | tojson }};
 const SAMPLES = {{ p.samples | tojson }};
 const POLICY = {{ p.policy | tojson }};
 const TESTCASES = {{ p.testcases | default([]) | tojson }};
@@ -123,6 +125,33 @@ initEditor(PCODE, LANG_HINT);
 function showRun(html){ const rp = document.getElementById('runPanel'); rp.classList.add('show'); rp.innerHTML = html; }
 function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 function verdictBadge(v, label){ const m = {AC:'v-ac',WA:'v-wa',TLE:'v-tle',RE:'v-re',CE:'v-ce',SE:'v-se',MLE:'v-tle'}; return '<span class="verdict ' + (m[v]||'v-se') + '">' + esc(v) + '</span> ' + esc(label||''); }
+
+function renderMySubmissions(){
+  if (typeof OJStore === 'undefined') return;
+  const subs = OJStore.getSubmissions(PCODE);
+  const container = document.getElementById('mySubmissionsList');
+  if (!container) return;
+  if (!subs.length) {
+    container.innerHTML = '<div class="empty" style="padding:16px 0"><p class="muted" style="font-size:13px">暂无提交记录</p></div>';
+    return;
+  }
+  let html = '';
+  subs.slice(0, 8).forEach(s => {
+    const dt = new Date(s.created_at * 1000);
+    const dateStr = (dt.getMonth()+1) + '-' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+    const subUrl = window.STATIC_MODE ? ('/submissions?id=' + s.id) : ('/s/' + s.id);
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">' +
+      '<a class="mono" href="' + subUrl + '" style="font-size:13px">#' + s.id + '</a>' +
+      '<span class="muted" style="font-size:12.5px">' + dateStr + '</span>' +
+      '<span class="mono muted" style="font-size:12.5px">' + s.passed + '/' + s.total + ' 点</span>' +
+      verdictBadge(s.verdict) + '</div>';
+  });
+  container.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  renderMySubmissions();
+});
 
 async function submitCode(){
   const btn = document.getElementById('btnSubmit');
@@ -144,6 +173,8 @@ async function submitCode(){
       if (typeof OJStore !== 'undefined') {
         const sub = OJStore.saveSubmission({
           problemCode: PCODE,
+          problem_code: PCODE,
+          problem_title: PTITLE,
           code: getCode(),
           verdict: res.verdict,
           passed: res.passed,
@@ -170,14 +201,16 @@ async function submitCode(){
       j = await r.json();
     }
 
+    let subUrl = window.STATIC_MODE ? ('/submissions?id=' + j.id) : ('/s/' + j.id);
     let html = '<div class="row">' + verdictBadge(j.verdict) +
       ' <span class="muted">通过 ' + j.passed + '/' + j.total + ' 测试点 · 最大耗时 ' + j.max_time_ms + 'ms · 峰值内存 ' + j.max_mem_kb + 'KB</span></div>';
     if (j.policy_issues && j.policy_issues.length)
       html += '<div class="row muted">' + j.policy_issues.map(esc).join('<br>') + '</div>';
     if (j.compile_msg)
       html += '<pre>' + esc(j.compile_msg.slice(0, 3000)) + '</pre>';
-    html += '<div class="row"><a href="/s/' + j.id + '">查看评测详情 #' + j.id + ' →</a></div>';
+    html += '<div class="row"><a href="' + subUrl + '">查看评测详情 #' + j.id + ' →</a></div>';
     showRun(html);
+    renderMySubmissions();
     if (j.verdict === 'AC') setTimeout(() => location.reload(), 900);
   } catch(e) {
     showRun(verdictBadge('SE', '评测错误：' + e.message));

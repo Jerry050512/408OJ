@@ -1,4 +1,4 @@
-/* 408OJ 本地存储模块 (localStorage / IndexedDB持久化)。
+/* 408OJ 本地存储模块 (localStorage 持久化)。
  * 管理离线环境下的提交记录、刷题 AC 状态、草稿代码。
  */
 
@@ -37,7 +37,7 @@
     if (typeof localStorage === 'undefined') return [];
     const subs = safeJSONParse(localStorage.getItem(SUBMISSIONS_KEY), []);
     if (problemCode) {
-      return subs.filter(s => s.problemCode === problemCode);
+      return subs.filter(s => s.problemCode === problemCode || s.problem_code === problemCode);
     }
     return subs;
   }
@@ -50,24 +50,40 @@
   function saveSubmission(sub) {
     if (typeof localStorage === 'undefined') return sub;
     const subs = getSubmissions();
-    const id = Date.now();
+    const maxId = subs.reduce((max, s) => {
+      const nid = Number(s.id) || 0;
+      return nid > max ? nid : max;
+    }, 0);
+    const nextId = maxId + 1;
+
     const newSub = Object.assign({
-      id: id,
+      id: nextId,
       created_at: Math.floor(Date.now() / 1000)
     }, sub);
+
+    // 标准化字段命名，确保前端与 Python 后端视图一致
+    newSub.problem_code = newSub.problem_code || newSub.problemCode;
+    newSub.problem_title = newSub.problem_title || newSub.problemTitle || newSub.problem_code;
+    newSub.max_time_ms = newSub.max_time_ms !== undefined ? newSub.max_time_ms : (newSub.maxTimeMs || 0);
+    newSub.max_mem_kb = newSub.max_mem_kb !== undefined ? newSub.max_mem_kb : (newSub.maxMemKb || 0);
+    newSub.compile_msg = newSub.compile_msg !== undefined ? newSub.compile_msg : (newSub.compileMsg || '');
+    newSub.policy_issues = newSub.policy_issues || newSub.policyIssues || [];
 
     subs.unshift(newSub);
     localStorage.setItem(SUBMISSIONS_KEY, safeJSONStringify(subs));
 
     // 更新 AC / Status 映射
-    const solvedMap = getSolvedMap();
-    const curStatus = solvedMap[sub.problemCode];
-    if (sub.verdict === 'AC') {
-      solvedMap[sub.problemCode] = 'AC';
-    } else if (!curStatus) {
-      solvedMap[sub.problemCode] = sub.verdict;
+    const pcode = newSub.problem_code;
+    if (pcode) {
+      const solvedMap = getSolvedMap();
+      const curStatus = solvedMap[pcode];
+      if (newSub.verdict === 'AC') {
+        solvedMap[pcode] = 'AC';
+      } else if (!curStatus) {
+        solvedMap[pcode] = newSub.verdict;
+      }
+      localStorage.setItem(SOLVED_KEY, safeJSONStringify(solvedMap));
     }
-    localStorage.setItem(SOLVED_KEY, safeJSONStringify(solvedMap));
 
     return newSub;
   }

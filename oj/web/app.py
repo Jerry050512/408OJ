@@ -35,8 +35,13 @@ VERDICT_META = {
 }
 
 
+import re
+
 def md(text: str) -> str:
-    return markdown.markdown(text or "", extensions=["fenced_code", "tables", "nl2br"])
+    if not text:
+        return ""
+    text = re.sub(r'#include\s*<([^>]+)>', r'#include &lt;\1&gt;', text)
+    return markdown.markdown(text, extensions=["fenced_code", "tables", "nl2br"])
 
 
 def create_app(db_path: Path | None = None, do_seed: bool = True) -> FastAPI:

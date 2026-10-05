@@ -1,31 +1,185 @@
 {% extends "base.html" %}
 {% block title %}提交记录{% endblock %}
 {% block content %}
-<h1 style="margin-bottom:4px">提交记录</h1>
-<p class="muted" style="margin-top:0">
-  {% if problem %}题目 <a href="/p/{{ problem.code }}">{{ problem.title }}</a> 的提交 · {% endif %}
-  共 {{ subs|length }} 条
-</p>
-<div class="card" style="padding:10px 0">
-  <div class="table-wrap" style="border:0">
-  <table class="tb">
-    <thead><tr><th style="width:70px">编号</th><th>题目</th><th style="width:90px">结果</th>
-      <th style="width:90px">测试点</th><th style="width:90px">耗时</th><th style="width:110px">时间</th></tr></thead>
-    <tbody>
-      {% for s in subs %}
-      <tr>
-        <td><a class="mono" href="/s/{{ s.id }}">#{{ s.id }}</a></td>
-        <td class="t-title"><a href="/p/{{ s.problem_code }}">{{ s.problem_title }}</a></td>
-        <td><span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span></td>
-        <td class="mono muted">{{ s.passed }}/{{ s.total }}</td>
-        <td class="mono muted">{{ '%.0f' | format(s.max_time_ms) }}ms</td>
-        <td class="muted" style="font-size:13px">{{ s.created_at | round(0) | int | datetime }}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="6"><div class="empty"><p>暂无提交记录。</p><p><a href="/problems">去题库做一道题 →</a></p></div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div id="submDetailView" style="display:none">
+  <div class="subm-head">
+    <h1 style="margin:0">评测详情 <span class="muted mono" style="font-size:18px" id="dSubId"></span></h1>
+    <span class="verdict" style="font-size:15px;padding:6px 14px" id="dVerdictBadge"></span>
+    <span class="muted" id="dMetaText"></span>
+    <span style="margin-left:auto"><a href="/submissions" id="dBackLink">← 返回列表</a></span>
+  </div>
+  <p class="muted" id="dSubInfo"></p>
+
+  <div class="notice" id="dPolicyBox" style="display:none">
+    <b>408 合规检查未通过：</b>
+    <ul style="margin:6px 0 0" id="dPolicyList"></ul>
+  </div>
+
+  <div class="card" id="dCompileBox" style="display:none">
+    <div class="card-title"><h3 style="margin:0">编译信息</h3></div>
+    <div class="compile-log" id="dCompileMsg"></div>
+  </div>
+
+  <div class="card" id="dTcBox" style="display:none">
+    <div class="card-title"><h3 style="margin:0" id="dTcTitle">测试点详情</h3></div>
+    <div id="dTcList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><h3 style="margin:0">提交的代码</h3>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="copyText(this, document.getElementById('src-view').textContent)">复制</button>
+      <button class="btn btn-sm" type="button" onclick="restoreCode()">恢复到编辑器</button>
+    </div>
+    <pre class="code-dark"><code id="src-view"></code></pre>
   </div>
 </div>
+
+<div id="submListView">
+  <h1 style="margin-bottom:4px">提交记录</h1>
+  <p class="muted" style="margin-top:0" id="submCountText">
+    {% if problem %}题目 <a href="/p/{{ problem.code }}">{{ problem.title }}</a> 的提交 · {% endif %}
+    共 {{ subs|length }} 条
+  </p>
+  <div class="card" style="padding:10px 0">
+    <div class="table-wrap" style="border:0">
+    <table class="tb">
+      <thead><tr><th style="width:70px">编号</th><th>题目</th><th style="width:90px">结果</th>
+        <th style="width:90px">测试点</th><th style="width:90px">耗时</th><th style="width:110px">时间</th></tr></thead>
+      <tbody id="submTableBody">
+        {% for s in subs %}
+        <tr>
+          <td><a class="mono" href="/s/{{ s.id }}">#{{ s.id }}</a></td>
+          <td class="t-title"><a href="/p/{{ s.problem_code }}">{{ s.problem_title }}</a></td>
+          <td><span class="verdict {{ verdict_meta[s.verdict][1] }}">{{ s.verdict }}</span></td>
+          <td class="mono muted">{{ s.passed }}/{{ s.total }}</td>
+          <td class="mono muted">{{ '%.0f' | format(s.max_time_ms) }}ms</td>
+          <td class="muted" style="font-size:13px">{{ s.created_at | round(0) | int | datetime }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6"><div class="empty"><p>暂无提交记录。</p><p><a href="/problems">去题库做一道题 →</a></p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/editor.js"></script>
+<script>
+function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function verdictBadge(v, label){ const m = {AC:'v-ac',WA:'v-wa',TLE:'v-tle',RE:'v-re',CE:'v-ce',SE:'v-se',MLE:'v-tle'}; const lbl = {AC:'通过',WA:'答案错误',TLE:'运行超时',RE:'运行错误',CE:'编译失败',SE:'系统错误',MLE:'内存超限'}[v] || v; return '<span class="verdict ' + (m[v]||'v-se') + '">' + esc(v) + '</span> ' + esc(label || lbl); }
+
+let currentProblemCode = '';
+
+function restoreCode(){
+  if (!currentProblemCode) return;
+  localStorage.setItem('oj-code-' + currentProblemCode, document.getElementById('src-view').textContent);
+  location.href = '/p/' + currentProblemCode;
+}
+
+function renderDetail(sub){
+  document.getElementById('submListView').style.display = 'none';
+  document.getElementById('submDetailView').style.display = 'block';
+
+  currentProblemCode = sub.problem_code || sub.problemCode || '';
+  document.getElementById('dSubId').textContent = '#' + sub.id;
+  document.getElementById('dVerdictBadge').innerHTML = verdictBadge(sub.verdict);
+  document.getElementById('dMetaText').textContent = '通过 ' + sub.passed + '/' + sub.total + ' 测试点 · 最大耗时 ' + (sub.max_time_ms||0) + 'ms';
+
+  const dt = new Date((sub.created_at || Date.now()/1000) * 1000);
+  const dateStr = (dt.getMonth()+1) + '-' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+  document.getElementById('dSubInfo').innerHTML = '题目 <a href="/p/' + currentProblemCode + '"><b>' + esc(sub.problem_title || currentProblemCode) + '</b></a> · 提交于 ' + dateStr;
+  document.getElementById('dBackLink').href = currentProblemCode ? ('/p/' + currentProblemCode) : '/submissions';
+
+  if (sub.policy_issues && sub.policy_issues.length){
+    document.getElementById('dPolicyBox').style.display = 'block';
+    document.getElementById('dPolicyList').innerHTML = sub.policy_issues.map(i => '<li class="mono" style="font-size:12.5px">' + esc(i) + '</li>').join('');
+  } else {
+    document.getElementById('dPolicyBox').style.display = 'none';
+  }
+
+  if (sub.compile_msg){
+    document.getElementById('dCompileBox').style.display = 'block';
+    document.getElementById('dCompileMsg').textContent = sub.compile_msg;
+  } else {
+    document.getElementById('dCompileBox').style.display = 'none';
+  }
+
+  if (sub.results && sub.results.length){
+    document.getElementById('dTcBox').style.display = 'block';
+    document.getElementById('dTcTitle').textContent = '测试点详情（前 ' + sub.results.length + ' 个）';
+    let html = '';
+    sub.results.forEach((r, idx) => {
+      html += '<div class="tc-result"><div class="tc-head"><b>#' + (idx+1) + '</b> ' +
+        verdictBadge(r.status) + ' <span class="muted mono" style="font-size:12px">' + (r.time_ms||0) + 'ms</span></div>';
+      if (r.status !== 'AC' && (r.input || r.expected || r.stdout)){
+        html += '<div class="tc-io">';
+        if (r.input) html += '<div><h5>输入</h5><pre>' + esc(r.input) + '</pre></div>';
+        if (r.expected) html += '<div><h5>期望输出</h5><pre>' + esc(r.expected) + '</pre></div>';
+        if (r.stdout) html += '<div><h5>你的输出</h5><pre>' + esc(r.stdout) + '</pre></div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    document.getElementById('dTcList').innerHTML = html;
+  } else {
+    document.getElementById('dTcBox').style.display = 'none';
+  }
+
+  document.getElementById('src-view').textContent = sub.code || '';
+}
+
+function renderList(){
+  if (typeof OJStore === 'undefined') return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('id');
+  const targetProblem = urlParams.get('problem');
+
+  if (targetId) {
+    const sub = OJStore.getSubmissionById(targetId);
+    if (sub) {
+      renderDetail(sub);
+      return;
+    }
+  }
+
+  const subs = OJStore.getSubmissions(targetProblem);
+  const tbody = document.getElementById('submTableBody');
+  const countText = document.getElementById('submCountText');
+
+  if (targetProblem && countText) {
+    countText.innerHTML = '题目 <a href="/p/' + targetProblem + '">' + esc(targetProblem) + '</a> 的提交 · 共 ' + subs.length + ' 条';
+  } else if (countText) {
+    countText.innerHTML = '共 ' + subs.length + ' 条提交记录';
+  }
+
+  if (!subs.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><p>暂无提交记录。</p><p><a href="/problems">去题库做一道题 →</a></p></div></td></tr>';
+    return;
+  }
+
+  let html = '';
+  subs.forEach(s => {
+    const dt = new Date((s.created_at || Date.now()/1000) * 1000);
+    const dateStr = (dt.getMonth()+1) + '-' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+    const subUrl = window.STATIC_MODE ? ('/submissions?id=' + s.id) : ('/s/' + s.id);
+    const pUrl = '/p/' + (s.problem_code || s.problemCode || '');
+    html += '<tr>' +
+      '<td><a class="mono" href="' + subUrl + '">#' + s.id + '</a></td>' +
+      '<td class="t-title"><a href="' + pUrl + '">' + esc(s.problem_title || s.problem_code || s.problemCode) + '</a></td>' +
+      '<td>' + verdictBadge(s.verdict) + '</td>' +
+      '<td class="mono muted">' + s.passed + '/' + s.total + '</td>' +
+      '<td class="mono muted">' + (s.max_time_ms||0) + 'ms</td>' +
+      '<td class="muted" style="font-size:13px">' + dateStr + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  renderList();
+});
+</script>
 {% endblock %}

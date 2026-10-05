@@ -1,36 +1,49 @@
 {% extends "base.html" %}
-{% block title %}提交 #{{ s.id }}{% endblock %}
+{% block title %}{% if s %}提交 #{{ s.id }}{% else %}评测详情{% endif %}{% endblock %}
 {% block content %}
+<div id="subContainer">
 <div class="subm-head">
-  <h1 style="margin:0">评测详情 <span class="muted mono" style="font-size:18px">#{{ s.id }}</span></h1>
-  <span class="verdict {{ verdict_meta[s.verdict][1] }}" style="font-size:15px;padding:6px 14px">
-    {{ verdict_meta[s.verdict][0] }}（{{ s.verdict }}）</span>
-  <span class="muted">通过 {{ s.passed }}/{{ s.total }} 测试点 · 最大耗时 {{ '%.0f'|format(s.max_time_ms) }}ms · 峰值 {{ s.max_mem_kb|int }}KB</span>
-  <span style="margin-left:auto"><a href="/p/{{ s.p.code }}">← 回到题目</a></span>
+  <h1 style="margin:0">评测详情 <span class="muted mono" style="font-size:18px" id="sHeaderId">{% if s %}#{{ s.id }}{% endif %}</span></h1>
+  <span class="verdict {{ verdict_meta[s.verdict][1] if s else 'v-se' }}" style="font-size:15px;padding:6px 14px" id="sVerdictBadge">
+    {% if s %}{{ verdict_meta[s.verdict][0] }}（{{ s.verdict }}）{% endif %}</span>
+  <span class="muted" id="sHeaderMeta">{% if s %}通过 {{ s.passed }}/{{ s.total }} 测试点 · 最大耗时 {{ '%.0f'|format(s.max_time_ms) }}ms · 峰值 {{ s.max_mem_kb|int }}KB{% endif %}</span>
+  <span style="margin-left:auto"><a href="/p/{{ s.p.code if s else '' }}" id="sBackLink">← 回到题目</a></span>
 </div>
-<p class="muted">
+<p class="muted" id="sSubInfo">
+  {% if s %}
   题目 <a href="/p/{{ s.p.code }}"><b>{{ s.p.title }}</b></a>
   {% if s.p.kind == 'exam' %} <span class="badge b-exam">{{ s.p.year }} {{ s.p.exam_no }}</span>{% endif %}
   · 提交于 {{ s.created_at | round(0) | int | datetime }}
+  {% endif %}
 </p>
 
-{% if s.policy_issues %}
+{% if s and s.policy_issues %}
 <div class="notice">
   <b>408 合规检查未通过：</b>
   <ul style="margin:6px 0 0">
     {% for i in s.policy_issues %}<li class="mono" style="font-size:12.5px">{{ i }}</li>{% endfor %}
   </ul>
 </div>
+{% else %}
+<div class="notice" id="sPolicyBox" style="display:none">
+  <b>408 合规检查未通过：</b>
+  <ul style="margin:6px 0 0" id="sPolicyList"></ul>
+</div>
 {% endif %}
 
-{% if s.compile_msg %}
+{% if s and s.compile_msg %}
 <div class="card">
   <div class="card-title"><h3 style="margin:0">编译信息</h3></div>
   <div class="compile-log">{{ s.compile_msg }}</div>
 </div>
+{% else %}
+<div class="card" id="sCompileBox" style="display:none">
+  <div class="card-title"><h3 style="margin:0">编译信息</h3></div>
+  <div class="compile-log" id="sCompileMsg"></div>
+</div>
 {% endif %}
 
-{% if s.results %}
+{% if s and s.results %}
 <div class="card">
   <div class="card-title"><h3 style="margin:0">测试点详情（前 {{ s.results|length }} 个）</h3></div>
   {% for r in s.results %}
@@ -51,25 +64,87 @@
   </div>
   {% endfor %}
 </div>
+{% else %}
+<div class="card" id="sTcBox" style="display:none">
+  <div class="card-title"><h3 style="margin:0" id="sTcTitle">测试点详情</h3></div>
+  <div id="sTcList"></div>
+</div>
 {% endif %}
 
 <div class="card">
   <div class="card-title"><h3 style="margin:0">提交的代码</h3>
     <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="copyText(this, document.getElementById('src-view').textContent)">复制</button>
-    <form method="get" action="/p/{{ s.p.code }}" style="display:inline" id="restoreForm">
-      <button class="btn btn-sm" type="button" onclick="restoreCode()">恢复到编辑器</button>
-    </form>
+    <button class="btn btn-sm" type="button" onclick="restoreCode()">恢复到编辑器</button>
   </div>
-  <pre class="code-dark"><code id="src-view">{{ s.code }}</code></pre>
+  <pre class="code-dark"><code id="src-view">{% if s %}{{ s.code }}{% endif %}</code></pre>
+</div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/js/editor.js"></script>
 <script>
+function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function verdictBadge(v, label){ const m = {AC:'v-ac',WA:'v-wa',TLE:'v-tle',RE:'v-re',CE:'v-ce',SE:'v-se',MLE:'v-tle'}; const lbl = {AC:'通过',WA:'答案错误',TLE:'运行超时',RE:'运行错误',CE:'编译失败',SE:'系统错误',MLE:'内存超限'}[v] || v; return '<span class="verdict ' + (m[v]||'v-se') + '">' + esc(v) + '</span> ' + esc(label || lbl); }
+
+let pCode = {% if s %}{{ s.p.code | tojson }}{% else %}""{% endif %};
+
 function restoreCode(){
-  localStorage.setItem('oj-code-{{ s.p.code }}', document.getElementById('src-view').textContent);
-  location.href = '/p/{{ s.p.code }}';
+  if (!pCode) return;
+  localStorage.setItem('oj-code-' + pCode, document.getElementById('src-view').textContent);
+  location.href = '/p/' + pCode;
 }
+
+document.addEventListener('DOMContentLoaded', function(){
+  if (typeof OJStore === 'undefined') return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('id') || window.location.pathname.split('/').pop();
+
+  if (targetId) {
+    const sub = OJStore.getSubmissionById(targetId);
+    if (sub) {
+      pCode = sub.problem_code || sub.problemCode || '';
+      document.getElementById('sHeaderId').textContent = '#' + sub.id;
+      document.getElementById('sVerdictBadge').innerHTML = verdictBadge(sub.verdict);
+      document.getElementById('sHeaderMeta').textContent = '通过 ' + sub.passed + '/' + sub.total + ' 测试点 · 最大耗时 ' + (sub.max_time_ms||0) + 'ms';
+
+      const dt = new Date((sub.created_at || Date.now()/1000) * 1000);
+      const dateStr = (dt.getMonth()+1) + '-' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+      document.getElementById('sSubInfo').innerHTML = '题目 <a href="/p/' + pCode + '"><b>' + esc(sub.problem_title || pCode) + '</b></a> · 提交于 ' + dateStr;
+      document.getElementById('sBackLink').href = '/p/' + pCode;
+
+      if (sub.policy_issues && sub.policy_issues.length){
+        document.getElementById('sPolicyBox').style.display = 'block';
+        document.getElementById('sPolicyList').innerHTML = sub.policy_issues.map(i => '<li class="mono" style="font-size:12.5px">' + esc(i) + '</li>').join('');
+      }
+
+      if (sub.compile_msg){
+        document.getElementById('sCompileBox').style.display = 'block';
+        document.getElementById('sCompileMsg').textContent = sub.compile_msg;
+      }
+
+      if (sub.results && sub.results.length){
+        document.getElementById('sTcBox').style.display = 'block';
+        document.getElementById('sTcTitle').textContent = '测试点详情（前 ' + sub.results.length + ' 个）';
+        let html = '';
+        sub.results.forEach((r, idx) => {
+          html += '<div class="tc-result"><div class="tc-head"><b>#' + (idx+1) + '</b> ' +
+            verdictBadge(r.status) + ' <span class="muted mono" style="font-size:12px">' + (r.time_ms||0) + 'ms</span></div>';
+          if (r.status !== 'AC' && (r.input || r.expected || r.stdout)){
+            html += '<div class="tc-io">';
+            if (r.input) html += '<div><h5>输入</h5><pre>' + esc(r.input) + '</pre></div>';
+            if (r.expected) html += '<div><h5>期望输出</h5><pre>' + esc(r.expected) + '</pre></div>';
+            if (r.stdout) html += '<div><h5>你的输出</h5><pre>' + esc(r.stdout) + '</pre></div>';
+            html += '</div>';
+          }
+          html += '</div>';
+        });
+        document.getElementById('sTcList').innerHTML = html;
+      }
+
+      document.getElementById('src-view').textContent = sub.code || '';
+    }
+  }
+});
 </script>
 {% endblock %}
