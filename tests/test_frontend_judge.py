@@ -3,10 +3,11 @@
 import json
 import subprocess
 import pytest
-import sqlite3
 
 from oj import db as dbm
 from oj import seed
+
+KNOWN_FAILURES = {"prac-seq-02", "real-2024-41"}
 
 @pytest.fixture(scope="module")
 def seeded_db(tmp_path_factory):
@@ -17,7 +18,7 @@ def seeded_db(tmp_path_factory):
     conn.close()
 
 def test_frontend_judge_all_ac(seeded_db, tmp_path):
-    """验证前端 OJJudge 在 Node.js 环境下对全量题目的参考 C 解法达成高准确率 (>= 90%) AC。"""
+    """验证前端 OJJudge 在 Node.js 环境下对全量题目的参考 C 解法 AC：失败题不得超出已知白名单。"""
     problems = []
     for p in dbm.list_problems(seeded_db):
         cases = dbm.get_testcases(seeded_db, p["id"])
@@ -45,7 +46,7 @@ async function runTest() {{
   const failures = [];
 
   for (const p of problems) {{
-    const res = await judge.judgeCode(p.ref_c, p.policy, p.testcases);
+    const res = await judge.judgeCode(p.ref_c, p.policy, p.testcases, 0, 0, p.code);
     if (res.verdict !== 'AC') {{
       failures.push({{
         code: p.code,
@@ -58,13 +59,12 @@ async function runTest() {{
     }}
   }}
 
-  if (failures.length > 5) {{
-    console.error('FAILURES (' + failures.length + '):', JSON.stringify(failures, null, 2));
-    process.exit(1);
-  }} else {{
-    console.log('SUCCESS: ' + (problems.length - failures.length) + '/' + problems.length + ' PROBLEMS PASSED FRONTEND AC VERIFICATION');
-    process.exit(0);
-  }}
+  console.log('RESULT_JSON:' + JSON.stringify({{
+    passed: problems.length - failures.length,
+    total: problems.length,
+    failed: failures.map(f => f.code)
+  }}));
+  process.exit(0);
 }}
 
 runTest().catch(err => {{
@@ -83,4 +83,15 @@ runTest().catch(err => {{
     )
 
     assert proc.returncode == 0, f"Frontend judge failed:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-    assert "SUCCESS:" in proc.stdout
+    result_line = next((ln for ln in proc.stdout.splitlines() if ln.startswith("RESULT_JSON:")), None)
+    assert result_line, f"missing RESULT_JSON output:\n{proc.stdout}"
+
+    result = json.loads(result_line[len("RESULT_JSON:"):])
+    failed_codes = set(result["failed"])
+    assert failed_codes <= KNOWN_FAILURES, (
+        f"回归恶化: 新增失败题 {sorted(failed_codes - KNOWN_FAILURES)}；"
+        f"已固化白名单 {sorted(KNOWN_FAILURES)}"
+    )
+    assert result["passed"] / result["total"] >= 0.9, (
+        f"通过率过低: {result['passed']}/{result['total']}，失败题: {sorted(failed_codes)}"
+    )

@@ -12,10 +12,10 @@ import sqlite3
 import time
 from pathlib import Path
 
-import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from oj import config, db, seed
+from oj.web.mdrender import md
 
 ROOT_DIR = Path(__file__).parent
 TPL_DIR = ROOT_DIR / "oj" / "web" / "templates"
@@ -27,15 +27,6 @@ VERDICT_META = {
     "RE": ("运行错误", "v-re"), "CE": ("编译失败", "v-ce"), "SE": ("系统错误", "v-se"),
     "MLE": ("内存超限", "v-tle"),
 }
-
-
-import re
-
-def md(text: str) -> str:
-    if not text:
-        return ""
-    text = re.sub(r'#include\s*<([^>]+)>', r'#include &lt;\1&gt;', text)
-    return markdown.markdown(text, extensions=["fenced_code", "tables", "nl2br"])
 
 
 def _dt(ts) -> str:
@@ -64,9 +55,8 @@ def build_static_site() -> None:
     if picoc_src.exists():
         picoc_code = picoc_src.read_text(encoding="utf-8")
         picoc_code = picoc_code.replace("exports.runC = runC;", "exports.picoc = picoc; exports.runC = runC;")
-        (STATIC_DIR / "js" / "picoc.umd.js").write_text(picoc_code, encoding="utf-8")
         (dist_static / "js" / "picoc.umd.js").write_text(picoc_code, encoding="utf-8")
-        print("  ✓ 已将增强型 picoc.umd.js 写入 static/js/ 与 dist/static/js/")
+        print("  ✓ 已将增强型 picoc.umd.js 写入 dist/static/js/")
 
     # 2. 内存建库并加载题库数据
     conn = sqlite3.connect(":memory:")

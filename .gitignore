@@ -7,3 +7,4 @@ node_modules/
 .pytest_cache/
 .judge_tmp/
 wb-*.json
+oj/web/static/js/picoc.umd.js

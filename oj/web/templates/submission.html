@@ -96,6 +96,7 @@ function restoreCode(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  if (!window.STATIC_MODE) return;
   if (typeof OJStore === 'undefined') return;
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('id') || window.location.pathname.split('/').pop();

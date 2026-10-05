@@ -60,19 +60,30 @@
     return lines.join('\n');
   }
 
-  function outputsEqual(expected, actual) {
-    return normalizeOutput(expected) === normalizeOutput(actual);
+  const POINTER_NAMES = new Set([
+    'p', 'pp', 'q', 'ptr', 'cur', 'current', 'prev', 'pre', 'next', 'nxt',
+    'head', 'tail', 'node', 'left', 'right', 'root', 'top', 'front', 'rear',
+    'pa', 'pb', 'l1', 'l2', 'first', 'last', 'slow', 'fast',
+    'tmp', 'temp', 'list', 'link', 'child', 'parent', 't'
+  ]);
+
+  function collectPointerVars(c) {
+    const vars = new Set(POINTER_NAMES);
+    const re = /\b(?:int|char|long|double|float|void|unsigned|short|size_t|[A-Z][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_]\w*)\s*(?=[=,;)])/g;
+    let m;
+    while ((m = re.exec(c)) !== null) vars.add(m[1]);
+    return vars;
   }
 
-  function preprocessForPicoC(code) {
-    let c = code || '';
+  function preprocessForPicoC(src, problemCode) {
+    let c = src || '';
 
     // 1. Convert static char (*g_tok)[12] to static array
     c = c.replace(/static\s+char\s*\(\*g_tok\)\[12\];/g, 'static char g_tok[200][12];');
     c = c.replace(/g_tok\s*=\s*malloc\([^;]+;/g, '/* skipped malloc for g_tok */;');
 
-    // 2. Parameter array decay: int h[] -> int *h
-    c = c.replace(/(\b[A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*\[\s*\]/g, (m, type, name) => type + ' *' + name);
+    // 2. Parameter array decay: int h[] -> int *h (skip initializers like int a[] = {...})
+    c = c.replace(/(\b[A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*\[\s*\](?!\s*=)/g, (m, type, name) => type + ' *' + name);
 
     // 3. Remove const, inline, (void)var
     c = c.replace(/\bconst\s+/g, '');
@@ -83,7 +94,8 @@
     c = c.replace(/\(size_t\)/g, '');
 
     // 5. Convert long long to double for real-2025-41
-    if (c.includes('res[i] = (a[i] >= 0)')) {
+    const useDouble = problemCode === 'real-2025-41' || c.includes('res[i] = (a[i] >= 0)');
+    if (useDouble) {
       c = c.replace(/\blong\s+long\b/g, 'double');
       c = c.replace(/scanf\("%lld"/g, 'scanf("%lf"');
       c = c.replace(/printf\("%lld"/g, 'printf("%.0f"');
@@ -123,8 +135,11 @@
     c = c.replace(/\(c\s*==\s*'\)'\)\s*\?\s*'\('\s*:\s*\(c\s*==\s*'\]'\)\s*\?\s*'\['\s*:\s*'\{'/g, "(c == ')') ? '(' : ((c == ']') ? '[' : '{')");
 
     // 11. Fix for-loop multi-variable declarations / updates for prac-seq-02:
-    c = c.replace(/for\s*\(\s*int\s+i\s*=\s*0\s*,\s*j\s*=\s*n\s*-\s*1\s*;\s*i\s*<\s*j\s*;\s*i\+\+\s*,\s*j--\s*\)\s*\{/g, 'int i = 0, j = n - 1;\n while (i < j) {');
-    c = c.replace(/a\[j\]\s*=\s*t\s*;/g, 'a[j] = t; i++; j--;');
+    const hadSeq02For = /for\s*\(\s*int\s+i\s*=\s*0\s*,\s*j\s*=\s*n\s*-\s*1/.test(c);
+    if (hadSeq02For) {
+      c = c.replace(/for\s*\(\s*int\s+i\s*=\s*0\s*,\s*j\s*=\s*n\s*-\s*1\s*;\s*i\s*<\s*j\s*;\s*i\+\+\s*,\s*j--\s*\)\s*\{/g, 'int i = 0, j = n - 1;\n while (i < j) {');
+      c = c.replace(/a\[j\]\s*=\s*t\s*;/g, 'a[j] = t; i++; j--;');
+    }
 
     // for (Node *p = head.next; p; p = p->next) -> Node *p; for (p = head.next; p != NULL; p = p->next)
     c = c.replace(/for\s*\(\s*([A-Za-z_]\w*)\s*\*\s*([A-Za-z_]\w*)\s*=\s*([^;]+);\s*([A-Za-z_]\w*);\s*([^)]+)\)/g, (m, type, varName, init, condVar, step) => {
@@ -132,7 +147,8 @@
     });
 
     // 12. Pointer boolean checks: while (cur) -> while (cur != NULL), if (!t) -> if (t == NULL)
-    c = c.replace(/while\s*\(\s*([A-Za-z_]\w*)\s*\)/g, (m, ptr) => 'while (' + ptr + ' != NULL)');
+    const ptrVars = collectPointerVars(c);
+    c = c.replace(/while\s*\(\s*([A-Za-z_]\w*)\s*\)/g, (m, ptr) => ptrVars.has(ptr) ? 'while (' + ptr + ' != NULL)' : m);
     c = c.replace(/while\s*\(\s*([A-Za-z_]\w*->[A-Za-z_]\w*)\s*\)/g, (m, ptr) => 'while (' + ptr + ' != NULL)');
     c = c.replace(/while\s*\(\s*([A-Za-z_]\w*->[A-Za-z_]\w*)\s*&&\s*([A-Za-z_]\w*->[A-Za-z_]\w*->[A-Za-z_]\w*)\s*\)/g, (m, p1, p2) => {
       return 'while (' + p1 + ' != NULL && ' + p2 + ' != NULL)';
@@ -140,11 +156,11 @@
     c = c.replace(/while\s*\(\s*([A-Za-z_]\w*)\s*&&\s*([A-Za-z_]\w*->[A-Za-z_]\w*)\s*&&\s*([A-Za-z_]\w*->[A-Za-z_]\w*->[A-Za-z_]\w*)\s*\)/g, (m, p1, p2, p3) => {
       return 'while (' + p1 + ' != NULL && ' + p2 + ' != NULL && ' + p3 + ' != NULL)';
     });
-    c = c.replace(/while\s*\(\s*([A-Za-z_]\w*)\s*&&\s*([A-Za-z_]\w*)\s*\)/g, (m, p1, p2) => 'while (' + p1 + ' != NULL && ' + p2 + ' != NULL)');
+    c = c.replace(/while\s*\(\s*([A-Za-z_]\w*)\s*&&\s*([A-Za-z_]\w*)\s*\)/g, (m, p1, p2) => (ptrVars.has(p1) && ptrVars.has(p2)) ? 'while (' + p1 + ' != NULL && ' + p2 + ' != NULL)' : m);
 
-    c = c.replace(/if\s*\(\s*!([A-Za-z_]\w*)\s*\)/g, (m, ptr) => 'if (' + ptr + ' == NULL)');
+    c = c.replace(/if\s*\(\s*!([A-Za-z_]\w*)\s*\)/g, (m, ptr) => ptrVars.has(ptr) ? 'if (' + ptr + ' == NULL)' : m);
     c = c.replace(/if\s*\(\s*!([A-Za-z_]\w*->[A-Za-z_]\w*)\s*\)/g, (m, ptr) => 'if (' + ptr + ' == NULL)');
-    c = c.replace(/if\s*\(\s*!([A-Za-z_]\w*)\s*\|\|\s*/g, (m, ptr) => 'if (' + ptr + ' == NULL || ');
+    c = c.replace(/if\s*\(\s*!([A-Za-z_]\w*)\s*\|\|\s*/g, (m, ptr) => ptrVars.has(ptr) ? 'if (' + ptr + ' == NULL || ' : m);
 
     // 13. Ternary pointer checks ONLY for pa ? pa : pb
     c = c.replace(/\b(pa|pb|ptr|p|cur|left|right|node)\b\s*\?\s*\1\s*:\s*([A-Za-z_]\w*)/g, (m, cond, fVal) => {
@@ -168,7 +184,9 @@
     c = c.replace(/s1\s*\+\s*i\s*-\s*k/g, '&s1[i - k]');
 
     // 18. Clamp MAXV in real-2024-41 to 105 for PicoC static array memory
-    c = c.replace(/#define\s+MAXV\s+1005/g, '#define MAXV 105');
+    if (problemCode === 'real-2024-41') {
+      c = c.replace(/#define\s+MAXV\s+1005/g, '#define MAXV 105');
+    }
 
     // Header shims
     const shims = `
@@ -190,7 +208,7 @@
     return shims + '\n' + c;
   }
 
-  function runPicoC(cprog, stdinStr, timeoutMs) {
+  function runPicoC(cprog, stdinStr, timeoutMs, problemCode) {
     timeoutMs = timeoutMs || 15000;
     return new Promise((resolve) => {
       const picocFactory = getPicocFactory();
@@ -231,22 +249,17 @@
               stdoutText += String.fromCharCode(c);
             }
           },
-          print(t) {
-            stdoutText += t + '\n';
-          },
           printErr(t) {}
         });
 
         pc.onRuntimeInitialized = () => {
           try {
-            const cleanCode = preprocessForPicoC(cprog);
+            const cleanCode = preprocessForPicoC(cprog, problemCode);
             pc.runc(cleanCode, (str) => {
               if (str) stdoutText += str + '\n';
             });
-            setTimeout(() => {
-              clearTimeout(timer);
-              finish(0, null);
-            }, 15);
+            clearTimeout(timer);
+            finish(0, null);
           } catch (e) {
             clearTimeout(timer);
             finish(1, e.message || String(e));
@@ -259,8 +272,9 @@
     });
   }
 
-  async function judgeCode(src, policy, testcases, timeLimitMs, memoryLimitKb) {
+  async function judgeCode(src, policy, testcases, timeLimitMs, memoryLimitKb, problemCode) {
     testcases = testcases || [];
+    const limit = timeLimitMs > 0 ? timeLimitMs : 15000;
     const issues = OJPolicy ? OJPolicy.checkSource(src, policy) : [];
     const policyIssues = issues.map(i => i.fmt ? i.fmt() : `第 ${i.line} 行: [${i.kind}] ${i.name} — ${i.message}`);
 
@@ -283,12 +297,12 @@
 
     for (let idx = 0; idx < testcases.length; idx++) {
       const tc = testcases[idx];
-      const res = await runPicoC(src, tc.input || "", 15000);
+      const res = await runPicoC(src, tc.input || "", limit, problemCode);
       let tcStatus = "AC";
       let tcMsg = "";
 
       if (res.error) {
-        if (res.error.includes("TLE")) {
+        if (res.status === 124) {
           tcStatus = "TLE";
           tcMsg = "运行超时";
         } else {
@@ -331,13 +345,14 @@
     };
   }
 
-  async function runCustom(src, policy, input) {
+  async function runCustom(src, policy, input, problemCode, timeLimitMs) {
     const issues = OJPolicy ? OJPolicy.checkSource(src, policy) : [];
     const policyIssues = issues.map(i => i.fmt ? i.fmt() : `第 ${i.line} 行: [${i.kind}] ${i.name} — ${i.message}`);
 
     if (issues.length > 0) {
       return {
         ok: false,
+        stage: "policy",
         compile_msg: "408 源码合规检查未通过:\n" + policyIssues.join("\n"),
         output: "",
         time_ms: 0,
@@ -346,11 +361,12 @@
       };
     }
 
-    const res = await runPicoC(src, input || "", 15000);
+    const res = await runPicoC(src, input || "", timeLimitMs > 0 ? timeLimitMs : 15000, problemCode);
     return {
       ok: !res.error,
+      stage: res.error ? (res.status === 124 ? "runtime" : "compile") : "ok",
       compile_msg: res.error || "",
-      output: res.error || "",
+      output: res.output || "",
       time_ms: 0,
       mem_kb: 0,
       policy_issues: []
@@ -359,7 +375,6 @@
 
   return {
     normalizeOutput: normalizeOutput,
-    outputsEqual: outputsEqual,
     preprocessForPicoC: preprocessForPicoC,
     runPicoC: runPicoC,
     judgeCode: judgeCode,

@@ -137,7 +137,7 @@
       const m = line.match(/^\s*#\s*include\s*(.*)/);
       if (!m) return;
       const target = m[1].trim();
-      const hm = target.match(/^[<"]([A-Za-z0-9_.\/\\-]+)[>"]/);
+      const hm = target.match(/^(<([A-Za-z0-9_.\/\\-]+)>|"([A-Za-z0-9_.\/\\-]+)")/);
       if (!hm) {
         issues.push({
           level: "error", kind: "header", name: "#include",
@@ -146,7 +146,7 @@
         });
         return;
       }
-      const name = hm[1];
+      const name = hm[2] || hm[3];
       if (name.includes("/") || name.includes("\\") || name.includes(":")) {
         issues.push({
           level: "error", kind: "header", name: name,

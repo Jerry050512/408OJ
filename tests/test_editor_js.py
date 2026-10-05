@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """通过 node 运行 editor.js 的行为测试（回车缩进 / 语法高亮）及静态模式校验。"""
-import json
 import shutil
 import subprocess
 from pathlib import Path

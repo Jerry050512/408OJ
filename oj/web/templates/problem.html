@@ -112,6 +112,10 @@
 {% endblock %}
 
 {% block scripts %}
+{% if STATIC_MODE %}
+<script src="/static/js/picoc.umd.js"></script>
+<script src="/static/js/judge.js"></script>
+{% endif %}
 <script src="/static/js/editor.js"></script>
 <script>
 const PCODE = {{ p.code | tojson }};
@@ -120,6 +124,8 @@ const SAMPLES = {{ p.samples | tojson }};
 const POLICY = {{ p.policy | tojson }};
 const TESTCASES = {{ p.testcases | default([]) | tojson }};
 const LANG_HINT = {{ p.lang_hint | tojson }};
+const PTIMELIMIT = {{ p.time_limit_ms | tojson }};
+const PMEMLIMIT = {{ p.memory_limit_kb | tojson }};
 initEditor(PCODE, LANG_HINT);
 
 function showRun(html){ const rp = document.getElementById('runPanel'); rp.classList.add('show'); rp.innerHTML = html; }
@@ -127,6 +133,7 @@ function esc(s){ const d = document.createElement('div'); d.textContent = s == n
 function verdictBadge(v, label){ const m = {AC:'v-ac',WA:'v-wa',TLE:'v-tle',RE:'v-re',CE:'v-ce',SE:'v-se',MLE:'v-tle'}; return '<span class="verdict ' + (m[v]||'v-se') + '">' + esc(v) + '</span> ' + esc(label||''); }
 
 function renderMySubmissions(){
+  if (!window.STATIC_MODE) return;
   if (typeof OJStore === 'undefined') return;
   const subs = OJStore.getSubmissions(PCODE);
   const container = document.getElementById('mySubmissionsList');
@@ -159,8 +166,8 @@ async function submitCode(){
   showRun('<span class="spin"></span> 评测中…');
   try {
     let j;
-    if (window.STATIC_MODE || typeof OJJudge !== 'undefined') {
-      const res = await OJJudge.judgeCode(getCode(), POLICY, TESTCASES);
+    if (window.STATIC_MODE) {
+      const res = await OJJudge.judgeCode(getCode(), POLICY, TESTCASES, PTIMELIMIT, PMEMLIMIT, PCODE);
       j = {
         verdict: res.verdict,
         passed: res.passed,
@@ -223,8 +230,8 @@ async function doRun(input, title){
   showRun('<span class="spin"></span> ' + esc(title) + ' 编译运行中…');
   try {
     let j;
-    if (window.STATIC_MODE || typeof OJJudge !== 'undefined') {
-      j = await OJJudge.runCustom(getCode(), POLICY, input);
+    if (window.STATIC_MODE) {
+      j = await OJJudge.runCustom(getCode(), POLICY, input, PCODE, PTIMELIMIT);
     } else {
       const r = await fetch('/api/v1/run', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -241,7 +248,7 @@ async function doRun(input, title){
       showRun(verdictBadge('CE', '408 合规检查未通过') + '<pre>' + esc(j.compile_msg || j.policy_issues.join('\n')) + '</pre>');
       return;
     }
-    if (!j.ok && j.compile_msg){
+    if (j.stage === 'compile' && j.compile_msg){
       showRun(verdictBadge('CE', '编译失败') + '<pre>' + esc(j.compile_msg) + '</pre>');
       return;
     }
