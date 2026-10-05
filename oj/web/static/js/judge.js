@@ -232,39 +232,55 @@
       }, timeoutMs);
 
       try {
-        const pc = picocFactory({
+        const config = {
           noExitRuntime: true,
-          quit(status) {
-            clearTimeout(timer);
-            finish(status, null);
-          },
           stdin() {
             if (stdinPos < stdinStr.length) {
               return stdinStr.charCodeAt(stdinPos++);
             }
             return null;
           },
-          stdout(c) {
-            if (c !== null && c !== undefined) {
-              stdoutText += String.fromCharCode(c);
-            }
+          print(t) {
+            stdoutText += t + '\n';
           },
-          printErr(t) {}
-        });
-
-        pc.onRuntimeInitialized = () => {
-          try {
-            const cleanCode = preprocessForPicoC(cprog, problemCode);
-            pc.runc(cleanCode, (str) => {
-              if (str) stdoutText += str + '\n';
-            });
-            clearTimeout(timer);
-            finish(0, null);
-          } catch (e) {
-            clearTimeout(timer);
-            finish(1, e.message || String(e));
+          printErr(t) {},
+          onRuntimeInitialized() {
+            try {
+              const cleanCode = preprocessForPicoC(cprog, problemCode);
+              config.runc(cleanCode, (str) => {
+                if (str) stdoutText += str + '\n';
+              });
+              clearTimeout(timer);
+              finish(0, null);
+            } catch (e) {
+              clearTimeout(timer);
+              finish(1, e.message || String(e));
+            }
           }
         };
+
+        const pc = picocFactory(config);
+
+        // If the module already initialized synchronously (SINGLE_FILE),
+        // onRuntimeInitialized was already called inside picocFactory.
+        // If not, the callback set on config will fire later.
+        // In either case, we also handle the .then() path as a safety net.
+        if (pc && typeof pc.then === 'function' && !hasEnded) {
+          pc.then((mod) => {
+            if (hasEnded) return;
+            try {
+              const cleanCode = preprocessForPicoC(cprog, problemCode);
+              mod.runc(cleanCode, (str) => {
+                if (str) stdoutText += str + '\n';
+              });
+              clearTimeout(timer);
+              finish(0, null);
+            } catch (e) {
+              clearTimeout(timer);
+              finish(1, e.message || String(e));
+            }
+          });
+        }
       } catch (e) {
         clearTimeout(timer);
         finish(1, e.message || String(e));
