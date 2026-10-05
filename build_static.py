@@ -100,7 +100,7 @@ def build_static_site() -> None:
     print(f"  ✓ 已导出 {len(problems)} 道题目的 JSON 数据库至 api/v1/")
 
     # 3. 初始化 Jinja2 渲染环境
-    env = Environment(loader=FileSystemLoader(str(TPL_DIR)))
+    env = Environment(loader=FileSystemLoader(str(TPL_DIR)), autoescape=True)
     env.filters["md"] = md
     env.filters["datetime"] = _dt
     env.globals["verdict_meta"] = VERDICT_META
