@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pip install -r requirements.txt && python3 build_static.py",
+  "outputDirectory": "dist",
+  "cleanUrls": true
+}

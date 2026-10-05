@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 *.db
 build/
+dist/
+node_modules/
 .pytest_cache/
 .judge_tmp/
 wb-*.json
