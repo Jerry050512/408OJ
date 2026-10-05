@@ -54,11 +54,14 @@ def build_static_site() -> None:
     dist_static = DIST_DIR / "static"
     shutil.copytree(STATIC_DIR, dist_static)
 
-    # 复制 picoc WASM UMD bundle
+    # 复制并增强 picoc WASM UMD bundle (导出 picoc 工厂)
     picoc_src = ROOT_DIR / "node_modules" / "picoc-js" / "dist" / "bundle.umd.js"
     if picoc_src.exists():
-        shutil.copy(picoc_src, dist_static / "js" / "picoc.umd.js")
-        print("  ✓ 已打包 picoc.umd.js 至 static/js/")
+        picoc_code = picoc_src.read_text(encoding="utf-8")
+        picoc_code = picoc_code.replace("exports.runC = runC;", "exports.picoc = picoc; exports.runC = runC;")
+        (STATIC_DIR / "js" / "picoc.umd.js").write_text(picoc_code, encoding="utf-8")
+        (dist_static / "js" / "picoc.umd.js").write_text(picoc_code, encoding="utf-8")
+        print("  ✓ 已将增强型 picoc.umd.js 写入 static/js/ 与 dist/static/js/")
 
     # 2. 内存建库并加载题库数据
     conn = sqlite3.connect(":memory:")

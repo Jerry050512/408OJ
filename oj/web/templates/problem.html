@@ -115,6 +115,8 @@
 <script>
 const PCODE = {{ p.code | tojson }};
 const SAMPLES = {{ p.samples | tojson }};
+const POLICY = {{ p.policy | tojson }};
+const TESTCASES = {{ p.testcases | default([]) | tojson }};
 const LANG_HINT = {{ p.lang_hint | tojson }};
 initEditor(PCODE, LANG_HINT);
 
@@ -127,12 +129,47 @@ async function submitCode(){
   btn.disabled = true;
   showRun('<span class="spin"></span> 评测中…');
   try {
-    const r = await fetch('/api/v1/problems/' + PCODE + '/submit', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({code: getCode()})
-    });
-    const j = await r.json();
-    if (!r.ok){ showRun(verdictBadge('SE', j.error || '提交失败')); return; }
+    let j;
+    if (window.STATIC_MODE || typeof OJJudge !== 'undefined') {
+      const res = await OJJudge.judgeCode(getCode(), POLICY, TESTCASES);
+      j = {
+        verdict: res.verdict,
+        passed: res.passed,
+        total: res.total,
+        max_time_ms: res.max_time_ms,
+        max_mem_kb: res.max_mem_kb,
+        compile_msg: res.compile_msg,
+        policy_issues: res.policy_issues
+      };
+      if (typeof OJStore !== 'undefined') {
+        const sub = OJStore.saveSubmission({
+          problemCode: PCODE,
+          code: getCode(),
+          verdict: res.verdict,
+          passed: res.passed,
+          total: res.total,
+          maxTimeMs: res.max_time_ms,
+          maxMemKb: res.max_mem_kb,
+          compileMsg: res.compile_msg,
+          results: res.results,
+          policyIssues: res.policy_issues
+        });
+        j.id = sub.id;
+      } else {
+        j.id = Date.now();
+      }
+    } else {
+      const r = await fetch('/api/v1/problems/' + PCODE + '/submit', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code: getCode()})
+      });
+      if (!r.ok || !(r.headers.get('content-type') || '').includes('json')){
+        showRun(verdictBadge('SE', '提交失败 (HTTP ' + r.status + ')'));
+        return;
+      }
+      j = await r.json();
+    }
+
     let html = '<div class="row">' + verdictBadge(j.verdict) +
       ' <span class="muted">通过 ' + j.passed + '/' + j.total + ' 测试点 · 最大耗时 ' + j.max_time_ms + 'ms · 峰值内存 ' + j.max_mem_kb + 'KB</span></div>';
     if (j.policy_issues && j.policy_issues.length)
@@ -143,7 +180,7 @@ async function submitCode(){
     showRun(html);
     if (j.verdict === 'AC') setTimeout(() => location.reload(), 900);
   } catch(e) {
-    showRun(verdictBadge('SE', '网络错误：' + e.message));
+    showRun(verdictBadge('SE', '评测错误：' + e.message));
   } finally {
     btn.disabled = false;
   }
@@ -152,20 +189,36 @@ async function submitCode(){
 async function doRun(input, title){
   showRun('<span class="spin"></span> ' + esc(title) + ' 编译运行中…');
   try {
-    const r = await fetch('/api/v1/run', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({problem_code: PCODE, code: getCode(), input: input})
-    });
-    const j = await r.json();
-    if (!r.ok){ showRun(verdictBadge('SE', j.error || '运行失败')); return; }
-    if (j.stage === 'policy'){ showRun(verdictBadge('CE', '408 合规检查未通过') + '<pre>' + esc(j.message) + '</pre>'); return; }
-    if (j.stage === 'compile'){ showRun(verdictBadge('CE', '编译失败') + '<pre>' + esc(j.message) + '</pre>'); return; }
-    let html = '<div class="row">' + verdictBadge(j.verdict) + ' <span class="muted">' + j.time_ms + 'ms / ' + j.mem_kb + 'KB</span></div>';
-    html += '<div class="row muted">标准输出</div><pre>' + esc(j.stdout) + '</pre>';
+    let j;
+    if (window.STATIC_MODE || typeof OJJudge !== 'undefined') {
+      j = await OJJudge.runCustom(getCode(), POLICY, input);
+    } else {
+      const r = await fetch('/api/v1/run', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({problem_code: PCODE, code: getCode(), input: input})
+      });
+      if (!r.ok || !(r.headers.get('content-type') || '').includes('json')){
+        showRun(verdictBadge('SE', '运行失败 (HTTP ' + r.status + ')'));
+        return;
+      }
+      j = await r.json();
+    }
+
+    if (j.stage === 'policy' || (j.policy_issues && j.policy_issues.length)){
+      showRun(verdictBadge('CE', '408 合规检查未通过') + '<pre>' + esc(j.compile_msg || j.policy_issues.join('\n')) + '</pre>');
+      return;
+    }
+    if (!j.ok && j.compile_msg){
+      showRun(verdictBadge('CE', '编译失败') + '<pre>' + esc(j.compile_msg) + '</pre>');
+      return;
+    }
+
+    let html = '<div class="row">' + verdictBadge(j.ok ? 'AC' : 'RE') + ' <span class="muted">' + j.time_ms + 'ms / ' + j.mem_kb + 'KB</span></div>';
+    html += '<div class="row muted">标准输出</div><pre>' + esc(j.output || j.stdout || '') + '</pre>';
     if (j.stderr) html += '<div class="row muted">标准错误</div><pre>' + esc(j.stderr) + '</pre>';
     if (j.compile_warnings) html += '<div class="row muted">编译警告</div><pre>' + esc(j.compile_warnings) + '</pre>';
     showRun(html);
-  } catch(e) { showRun(verdictBadge('SE', '网络错误：' + e.message)); }
+  } catch(e) { showRun(verdictBadge('SE', '运行错误：' + e.message)); }
 }
 function runSample(){ if (SAMPLES.length) doRun(SAMPLES[0].input, '样例 1'); else showRun('本题无样例'); }
 function toggleCustom(){ const b = document.getElementById('customBox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
