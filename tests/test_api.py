@@ -118,6 +118,30 @@ def test_solution_page_has_solution(client):
     assert "找中点" in r.text and "复杂度" in r.text
 
 
+def test_mock_kind_end_to_end(client):
+    mocks = client.get("/api/v1/problems?kind=mock").json()
+    assert mocks and all(p["kind"] == "mock" for p in mocks)
+    n_prac = len(client.get("/api/v1/problems?kind=practice").json())
+    r = client.get("/problems", params={"kind": "mock"})
+    assert r.status_code == 200
+    assert 'value="mock"' in r.text and "b-mock" in r.text  # 筛选项 + 第三类徽章
+    r = client.get("/")
+    assert "b-mock" in r.text and "模拟 ·" in r.text         # hero 徽章行
+    assert "模拟题已通过" in r.text                            # stat-card
+    assert f"配 {n_prac} 道拆解练习" in r.text                 # 话术口径动模板变量
+    assert 'class="kicker"' not in r.text                    # eyebrow-kicker 禁令
+
+
+def test_ui_css_regressions():
+    import re
+    from pathlib import Path
+    css = (Path(__file__).parent.parent / "oj/web/static/css/design.css").read_text(encoding="utf-8")
+    notice = re.search(r"\.notice\s*\{[^}]*\}", css).group(0)
+    assert not re.search(r"border-left\s*:\s*[2-9]", notice)   # 侧边压边=AI 痕迹,禁止回歸
+    assert "#8b949e" in css and "#687079" in css              # muted token AA 配色
+    assert ".badge.b-mock" in css and ".kicker" not in css
+
+
 def test_static_and_favicon(client):
     assert client.get("/static/css/design.css").status_code == 200
     assert client.get("/static/js/editor.js").status_code == 200

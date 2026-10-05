@@ -9,6 +9,7 @@
     <option value="">全部类型</option>
     <option value="exam" {{ 'selected' if f.kind=='exam' }}>408 真题</option>
     <option value="practice" {{ 'selected' if f.kind=='practice' }}>考点练习</option>
+    <option value="mock" {{ 'selected' if f.kind=='mock' }}>模拟题</option>
   </select>
   <select name="chapter" onchange="this.form.submit()">
     <option value="">全部章节</option>
@@ -55,7 +56,7 @@
           <a href="/p/{{ p.code }}">{{ p.title }}</a>
           {% if p.kind=='exam' %}<span class="muted" style="font-size:12px"> · {{ p.year }} {{ p.exam_no }}</span>{% endif %}
         </td>
-        <td>{% if p.kind=='exam' %}<span class="badge b-exam">真题</span>{% else %}<span class="badge b-prac">练习</span>{% endif %}</td>
+        <td>{% if p.kind=='exam' %}<span class="badge b-exam">真题</span>{% elif p.kind=='mock' %}<span class="badge b-mock">模拟</span>{% else %}<span class="badge b-prac">练习</span>{% endif %}</td>
         <td class="muted" style="font-size:13px">{{ p.chapter }}</td>
         <td>{% for t in p.tags %}<a class="tag" href="/problems?tag={{ t }}">{{ t }}</a> {% endfor %}</td>
         <td><span class="diff diff-{{ p.difficulty }}">{{ ['','容易','中等','困难'][p.difficulty] }}</span></td>

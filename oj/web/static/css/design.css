@@ -36,7 +36,7 @@
   --border-strong: #30363d;
   --text: #e6edf3;
   --text-2: #9198a1;
-  --text-3: #6e7681;
+  --text-3: #8b949e;  /* muted 正文级 AA 达标:#fff 6.15 / panel 5.62 */
   --link: #4493f8;
   --accent: #4493f8;
   --accent-strong: #1f6feb;
@@ -62,7 +62,7 @@
   --border-strong: #9aa7b4;
   --text: #1f2328;
   --text-2: #59636e;
-  --text-3: #818b98;
+  --text-3: #687079;  /* muted 正文级 AA 达标:#fff 5.02 / #f6f8fa 4.72 */
   --link: #0969da;
   --accent: #0969da;
   --accent-strong: #0550ae;
@@ -118,10 +118,7 @@ small { color: var(--text-3); }
 main.container { padding-top: 22px; padding-bottom: 64px; }
 
 /* ---------- 微型分区标签 ---------- */
-.kicker {
-  font-family: var(--mono); font-size: 11.5px; font-weight: 600;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
-}
+/* kicker/眉题已移除:eye-brow 属于禁用模式,标题自身承重;分区用 micro-label 放在卡片标题位 */
 .micro-label {
   font-family: var(--mono); font-size: 11px; font-weight: 600;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3);
@@ -211,6 +208,7 @@ main.container { padding-top: 22px; padding-bottom: 64px; }
 }
 .badge.b-exam { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: var(--amber-dim); }
 .badge.b-prac { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent); background: var(--green-dim); }
+.badge.b-mock { color: var(--purple); border-color: color-mix(in srgb, var(--purple) 45%, transparent); background: var(--purple-dim); }
 .badge.b-accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: var(--accent-dim); }
 
 .tag {
@@ -448,10 +446,10 @@ input[type="search"] { min-width: 200px; }
 @keyframes rot { to { transform: rotate(360deg); } }
 
 .notice {
-  border: 1px solid var(--border); border-left: 2px solid var(--accent);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 14px; font-size: 13px; color: var(--text-2); margin: 10px 0;
-  background: var(--panel-2);
+  background: var(--accent-dim);
 }
 .notice b { color: var(--text); }
 
