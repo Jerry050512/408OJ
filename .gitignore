@@ -5,3 +5,4 @@ build/
 .pytest_cache/
 .judge_tmp/
 wb-*.json
+.impeccable/
