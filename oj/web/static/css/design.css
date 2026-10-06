@@ -348,7 +348,7 @@ input[type="search"] { min-width: 200px; }
 .editor { display: flex; height: 430px; position: relative; }
 .editor-gutter {
   flex: none; width: 44px; padding: 12px 0; text-align: right;
-  font: 12.5px/1.55 var(--mono); color: #6e7681;
+  font: 13px/1.55 var(--mono); color: #6e7681;
   border-right: 1px solid #21262d; overflow: hidden; user-select: none;
   background: #0b0e14;
 }
