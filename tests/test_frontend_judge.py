@@ -34,6 +34,7 @@ def test_frontend_judge_all_ac(seeded_db, tmp_path):
 
     root_dir = str(dbm.Path(__file__).parent.parent)
     test_js = f"""
+process.setMaxListeners(0);
 const fs = require('fs');
 const path = require('path');
 const rootDir = {json.dumps(root_dir)};
@@ -68,7 +69,7 @@ async function runTest() {{
 }}
 
 runTest().catch(err => {{
-  console.error(err);
+  console.error(err && err.stack ? err.stack : err);
   process.exit(1);
 }});
 """

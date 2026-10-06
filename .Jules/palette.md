@@ -1,0 +1,3 @@
+## 2025-05-10 - Action Button Lock & Keyboard Shortcut Hints in Online Judge Editor
+**Learning:** In code editor interfaces with local/WASM code execution, asynchronous runs take noticeable time; failing to disable all interactive buttons (`btnSubmit`, `btnSample`, custom run) simultaneously allows duplicate runs and race conditions. Furthermore, keyboard shortcuts like `Ctrl+Enter` implemented in JS are unnoticed unless visually communicated on the button itself.
+**Action:** Always lock all execution action buttons during async compilation/judge operations, and pair `Ctrl+Enter` key listeners with visual `<kbd>` hints on submit buttons.

@@ -262,6 +262,7 @@
       try {
         const config = {
           noExitRuntime: true,
+          quit(status, toThrow) { throw toThrow || new Error("PicoC exited with status " + status); },
           // Character-level stdin (used by FS.createDevice for /dev/stdin)
           stdin() {
             if (stdinPos < stdinStr.length) {
