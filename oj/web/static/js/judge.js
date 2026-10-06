@@ -205,6 +205,16 @@
 #endif
 `;
 
+    // 19. Ensure stdout is flushed before main() returns.
+    // With noExitRuntime:true, Emscripten's exit(0,true) returns
+    // without calling C library exit() → stdout buffer not flushed.
+    // Strategy: insert fflush(stdout); before 'return' statements
+    // that are followed by a closing brace (i.e., the last return
+    // in a function body). This avoids breaking single-line
+    // if/else control flow like 'if (cond) return 0;'.
+    c = c.replace(/return\s+(\d+)\s*;\s*(?=\n\s*\})/g, 'fflush(stdout); return $1;');
+    c = c.replace(/return\s*;\s*(?=\n\s*\})/g, 'fflush(stdout); return;');
+
     return shims + '\n' + c;
   }
 
