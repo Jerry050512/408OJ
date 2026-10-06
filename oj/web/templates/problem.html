@@ -86,14 +86,14 @@
         <div class="editor-gutter" id="gutter"><div id="gutterInner"><span>1</span></div></div>
         <div class="editor-main">
           <pre class="editor-highlight" id="hlScroll"><code id="hl"></code></pre>
-          <textarea class="editor-input" id="code" spellcheck="false"
+          <textarea class="editor-input" id="code" spellcheck="false" aria-label="C 语言代码编辑区"
                     placeholder="在这里写 C 代码…（自动保存到浏览器本地）"></textarea>
         </div>
       </div>
       <div class="editor-actions">
-        <button class="btn btn-primary" id="btnSubmit" onclick="submitCode()">
+        <button class="btn btn-primary" id="btnSubmit" onclick="submitCode()" title="提交代码评测 (Ctrl+Enter)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-          提交评测
+          提交评测 <kbd class="kbd" style="font-size:10.5px;opacity:0.85;margin-left:3px">Ctrl+Enter</kbd>
         </button>
         <button class="btn" id="btnSample" onclick="runSample()">运行样例 1</button>
         <button class="btn btn-ghost" onclick="toggleCustom()">自定义输入</button>
@@ -104,7 +104,7 @@
       <div id="customBox" style="display:none;border-top:1px solid var(--border);padding:12px;background:var(--th-bg)">
         <div class="muted" style="font-size:12.5px;margin-bottom:6px">自定义输入（stdin）</div>
         <textarea id="customInput" rows="4" style="width:100%;font-family:var(--mono);font-size:12.5px"></textarea>
-        <div style="margin-top:8px"><button class="btn btn-sm" onclick="runCustom()">运行</button></div>
+        <div style="margin-top:8px"><button class="btn btn-sm" id="btnRunCustom" onclick="runCustom()">运行</button></div>
       </div>
     </div>
   </div>
@@ -160,9 +160,15 @@ document.addEventListener('DOMContentLoaded', function(){
   renderMySubmissions();
 });
 
+function setActionsDisabled(disabled){
+  ['btnSubmit', 'btnSample', 'btnRunCustom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+}
+
 async function submitCode(){
-  const btn = document.getElementById('btnSubmit');
-  btn.disabled = true;
+  setActionsDisabled(true);
   showRun('<span class="spin"></span> 评测中…');
   try {
     let j;
@@ -222,11 +228,12 @@ async function submitCode(){
   } catch(e) {
     showRun(verdictBadge('SE', '评测错误：' + e.message));
   } finally {
-    btn.disabled = false;
+    setActionsDisabled(false);
   }
 }
 
 async function doRun(input, title){
+  setActionsDisabled(true);
   showRun('<span class="spin"></span> ' + esc(title) + ' 编译运行中…');
   try {
     let j;
@@ -258,7 +265,7 @@ async function doRun(input, title){
     if (j.stderr) html += '<div class="row muted">标准错误</div><pre>' + esc(j.stderr) + '</pre>';
     if (j.compile_warnings) html += '<div class="row muted">编译警告</div><pre>' + esc(j.compile_warnings) + '</pre>';
     showRun(html);
-  } catch(e) { showRun(verdictBadge('SE', '运行错误：' + e.message)); }
+  } catch(e) { showRun(verdictBadge('SE', '运行错误：' + e.message)); } finally { setActionsDisabled(false); }
 }
 function runSample(){ if (SAMPLES.length) doRun(SAMPLES[0].input, '样例 1'); else showRun('本题无样例'); }
 function toggleCustom(){ const b = document.getElementById('customBox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
