@@ -94,8 +94,10 @@ def create_app(db_path: Path | None = None, do_seed: bool = True) -> FastAPI:
             smap = db.solved_problem_ids(c)
             exam = [p for p in problems if p["kind"] == "exam"]
             prac = [p for p in problems if p["kind"] == "practice"]
+            mock = [p for p in problems if p["kind"] == "mock"]
             solved_exam = sum(1 for p in exam if smap.get(p["id"]) == "AC")
             solved_prac = sum(1 for p in prac if smap.get(p["id"]) == "AC")
+            solved_mock = sum(1 for p in mock if smap.get(p["id"]) == "AC")
             tried = sum(1 for v in smap.values() if v and v != "AC")
             recent = db.list_submissions(c, limit=6)
             for s in recent:
@@ -107,8 +109,8 @@ def create_app(db_path: Path | None = None, do_seed: bool = True) -> FastAPI:
                 if smap.get(p["id"]) == "AC":
                     ch["solved"] += 1
             return templates.TemplateResponse(request, "index.html", {
-                "problems": problems, "exam": exam, "prac": prac,
-                "solved_exam": solved_exam, "solved_prac": solved_prac,
+                "problems": problems, "exam": exam, "prac": prac, "mock": mock,
+                "solved_exam": solved_exam, "solved_prac": solved_prac, "solved_mock": solved_mock,
                 "total_sub": c.execute("SELECT COUNT(*) FROM submissions").fetchone()[0],
                 "ac_sub": c.execute("SELECT COUNT(*) FROM submissions WHERE verdict='AC'").fetchone()[0],
                 "tried": tried, "recent": recent, "chapters": chapters,

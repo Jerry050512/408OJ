@@ -8,3 +8,4 @@ node_modules/
 .judge_tmp/
 wb-*.json
 oj/web/static/js/picoc.umd.js
+.impeccable/
