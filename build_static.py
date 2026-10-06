@@ -67,6 +67,7 @@ def build_static_site() -> None:
     smap = db.solved_problem_ids(conn)
     exam = [p for p in problems if p["kind"] == "exam"]
     prac = [p for p in problems if p["kind"] == "practice"]
+    mock = [p for p in problems if p["kind"] == "mock"]
     chapters_data = {}
     for p in problems:
         ch = chapters_data.setdefault(p["chapter"], {"total": 0, "solved": 0, "exam": 0, "exam_solved": 0})
@@ -117,8 +118,8 @@ def build_static_site() -> None:
 
     # 渲染 index.html
     render_page("index.html", {
-        "problems": problems, "exam": exam, "prac": prac,
-        "solved_exam": 0, "solved_prac": 0, "total_sub": 0,
+        "problems": problems, "exam": exam, "prac": prac, "mock": mock,
+        "solved_exam": 0, "solved_prac": 0, "solved_mock": 0, "total_sub": 0,
         "ac_sub": 0, "tried": 0, "recent": [], "chapters": chapters_data,
         "page": "home"
     }, DIST_DIR / "index.html")
