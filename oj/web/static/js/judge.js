@@ -231,55 +231,63 @@
         finish(124, 'TLE: 执行超时');
       }, timeoutMs);
 
+      const runCode = (mod) => {
+        if (hasEnded) return;
+        try {
+          const cleanCode = preprocessForPicoC(cprog, problemCode);
+          // Capture output via consoleWrite callback (PicoC's default
+          // Module.print routes stdout through Module.consoleWrite).
+          // Also set Module.stdout as a char-level fallback.
+          mod.runc(cleanCode, (str) => {
+            if (str) stdoutText += str + '\n';
+          });
+          clearTimeout(timer);
+          finish(0, null);
+        } catch (e) {
+          clearTimeout(timer);
+          finish(1, e.message || String(e));
+        }
+      };
+
       try {
         const config = {
           noExitRuntime: true,
+          // Character-level stdin (used by FS.createDevice for /dev/stdin)
           stdin() {
             if (stdinPos < stdinStr.length) {
               return stdinStr.charCodeAt(stdinPos++);
             }
             return null;
           },
-          print(t) {
-            stdoutText += t + '\n';
-          },
-          printErr(t) {},
-          onRuntimeInitialized() {
-            try {
-              const cleanCode = preprocessForPicoC(cprog, problemCode);
-              config.runc(cleanCode, (str) => {
-                if (str) stdoutText += str + '\n';
-              });
-              clearTimeout(timer);
-              finish(0, null);
-            } catch (e) {
-              clearTimeout(timer);
-              finish(1, e.message || String(e));
+          // Character-level stdout (used by FS.createDevice for /dev/stdout)
+          // This is the MOST reliable way to capture output in Emscripten:
+          // when Module.stdout is set, Emscripten creates a custom /dev/stdout
+          // device that calls this function for each character written.
+          stdout(c) {
+            if (c !== null && c !== undefined) {
+              stdoutText += String.fromCharCode(c);
             }
-          }
+          },
+          printErr(t) {}
         };
 
         const pc = picocFactory(config);
 
-        // If the module already initialized synchronously (SINGLE_FILE),
-        // onRuntimeInitialized was already called inside picocFactory.
-        // If not, the callback set on config will fire later.
-        // In either case, we also handle the .then() path as a safety net.
-        if (pc && typeof pc.then === 'function' && !hasEnded) {
-          pc.then((mod) => {
-            if (hasEnded) return;
-            try {
-              const cleanCode = preprocessForPicoC(cprog, problemCode);
-              mod.runc(cleanCode, (str) => {
-                if (str) stdoutText += str + '\n';
-              });
-              clearTimeout(timer);
-              finish(0, null);
-            } catch (e) {
-              clearTimeout(timer);
-              finish(1, e.message || String(e));
-            }
-          });
+        // The Emscripten modularize pattern returns a thenable module object.
+        // Use .then() to wait for WASM initialization — this is the
+        // recommended approach and handles both sync and async init.
+        if (pc && typeof pc.then === 'function') {
+          pc.then(runCode);
+        } else if (pc && typeof pc.onRuntimeInitialized === 'function') {
+          // Fallback: set onRuntimeInitialized directly
+          const oldCb = pc.onRuntimeInitialized;
+          pc.onRuntimeInitialized = () => {
+            if (oldCb) oldCb();
+            runCode(pc);
+          };
+        } else {
+          // Module may already be ready (unlikely in browser)
+          runCode(pc);
         }
       } catch (e) {
         clearTimeout(timer);
