@@ -51,7 +51,7 @@
     return out + '\n';  // 末行保持高度一致
   }
 
-  let ta, hl, hlScroll, gutter, saveKey, saveTimer;
+  let ta, hl, hlScroll, gutter, gutterInner, saveKey, saveTimer;
 
   // node 环境导出（pytest 通过 node 单测）
   if (typeof module !== 'undefined' && module.exports) {
@@ -63,10 +63,10 @@
     hl.innerHTML = highlight(src);
     // 行号
     const lines = src.split('\n').length;
-    if (gutter.childElementCount !== lines) {
+    if (gutterInner.childElementCount !== lines) {
       let html = '';
       for (let i = 1; i <= lines; i++) html += '<span>' + i + '</span>';
-      gutter.innerHTML = html;
+      gutterInner.innerHTML = html;
     }
     syncScroll();
     scheduleSave();
@@ -75,8 +75,7 @@
   function syncScroll() {
     hlScroll.scrollTop = ta.scrollTop;
     hlScroll.scrollLeft = ta.scrollLeft;
-    gutter.style.transform = 'translateY(' + (-ta.scrollTop) + 'px)';
-    gutter.style.height = ta.clientHeight + 'px';
+    gutterInner.style.transform = 'translateY(' + (-ta.scrollTop) + 'px)';
   }
 
   function scheduleSave() {
@@ -110,6 +109,7 @@
     hl = document.getElementById('hl');
     hlScroll = document.getElementById('hlScroll');
     gutter = document.getElementById('gutter');
+    gutterInner = document.getElementById('gutterInner');
     saveKey = 'oj-code-' + pcode;
 
     let saved = null;
