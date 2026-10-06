@@ -6,7 +6,6 @@ import sqlite3
 import time
 from pathlib import Path
 
-import markdown
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from .. import config, db, judge, seed
+from .mdrender import md
 
 TPL_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -33,10 +33,6 @@ VERDICT_META = {
     "RE": ("运行错误", "v-re"), "CE": ("编译失败", "v-ce"), "SE": ("系统错误", "v-se"),
     "MLE": ("内存超限", "v-tle"),
 }
-
-
-def md(text: str) -> str:
-    return markdown.markdown(text or "", extensions=["fenced_code", "tables", "nl2br"])
 
 
 def create_app(db_path: Path | None = None, do_seed: bool = True) -> FastAPI:

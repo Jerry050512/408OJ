@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""通过 node 运行 editor.js 的行为测试（回车缩进 / 语法高亮）。"""
+"""通过 node 运行 editor.js 的行为测试（回车缩进 / 语法高亮）及静态模式校验。"""
 import shutil
 import subprocess
 from pathlib import Path
@@ -23,3 +23,21 @@ def test_editor_js_selfcontained():
     text = src.read_text(encoding="utf-8")
     assert "http://" not in text and "https://" not in text
     assert "require(" not in text.split("module.exports")[0]  # 无运行时依赖
+
+
+def test_static_dist_html_configuration():
+    """验证生成的静态 dist HTML 页面中 window.STATIC_MODE = true 已正确配置。"""
+    from build_static import build_static_site
+    build_static_site()
+
+    dist_dir = Path(__file__).parent.parent / "dist"
+    index_html = dist_dir / "index.html"
+    problem_html = dist_dir / "p" / "real-2012-41" / "index.html"
+
+    assert index_html.exists()
+    assert problem_html.exists()
+
+    p_content = problem_html.read_text(encoding="utf-8")
+    assert "window.STATIC_MODE = true;" in p_content
+    assert "/static/js/picoc.umd.js" in p_content
+    assert "/static/js/judge.js" in p_content

@@ -1,0 +1,26 @@
+{
+  "name": "408oj",
+  "version": "1.0.0",
+  "description": "面向 408 计算机学科专业基础综合备考的在线评测系统 (Online Judge)",
+  "main": "build_static.py",
+  "scripts": {
+    "build": "python3 build_static.py",
+    "test": "python3 -m pytest tests/ -q"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jerry050512/408OJ.git"
+  },
+  "keywords": [
+    "408",
+    "online-judge",
+    "c",
+    "wasm",
+    "static-site"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "picoc-js": "^1.0.12"
+  }
+}
