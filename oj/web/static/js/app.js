@@ -12,12 +12,16 @@
   }
   window.applyTheme = applyTheme;
   document.addEventListener('DOMContentLoaded', function () {
-    applyTheme(localStorage.getItem('oj-theme') || 'dark');
+    let savedTheme = 'dark';
+    try { savedTheme = localStorage.getItem('oj-theme') || 'dark'; } catch (e) {}
+    applyTheme(savedTheme);
+
     const btn = document.getElementById('themeBtn');
     if (btn) btn.addEventListener('click', function () {
-      const cur = localStorage.getItem('oj-theme') || 'dark';
+      let cur = 'dark';
+      try { cur = localStorage.getItem('oj-theme') || 'dark'; } catch (e) {}
       const nxt = cur === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('oj-theme', nxt);
+      try { localStorage.setItem('oj-theme', nxt); } catch (e) {}
       applyTheme(nxt);
     });
   });
