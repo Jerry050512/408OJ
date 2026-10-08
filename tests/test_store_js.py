@@ -12,6 +12,6 @@ TEST_FILE = Path(__file__).parent / "store_js.test.js"
 
 @pytest.mark.skipif(NODE is None, reason="node 不可用")
 def test_store_js_behaviors():
-    r = subprocess.run([NODE, str(TEST_FILE)], capture_output=True, text=True, timeout=30)
+    r = subprocess.run([NODE, str(TEST_FILE)], capture_output=True, text=True, encoding="utf-8", timeout=30)
     assert r.returncode == 0, f"STDOUT:\n{r.stdout}\nSTDERR:\n{r.stderr}"
-    assert "ALL store.js tests passed!" in r.stdout
+    assert "ALL store.js tests passed!" in (r.stdout or "")
