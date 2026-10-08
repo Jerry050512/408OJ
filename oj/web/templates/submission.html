@@ -91,7 +91,18 @@ let pCode = {% if s %}{{ s.p.code | tojson }}{% else %}""{% endif %};
 
 function restoreCode(){
   if (!pCode) return;
-  localStorage.setItem('oj-code-' + pCode, document.getElementById('src-view').textContent);
+  const key = 'oj-code-' + pCode;
+  const codeText = document.getElementById('src-view').textContent;
+  try {
+    localStorage.setItem(key, codeText);
+  } catch (e) {
+    if (typeof OJStore !== 'undefined' && OJStore.cleanOldDrafts) {
+      OJStore.cleanOldDrafts(key);
+    }
+    try {
+      localStorage.setItem(key, codeText);
+    } catch (_) {}
+  }
   location.href = '/p/' + pCode;
 }
 

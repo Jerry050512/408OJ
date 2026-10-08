@@ -78,6 +78,23 @@
     gutterInner.style.transform = 'translateY(' + (-ta.scrollTop) + 'px)';
   }
 
+  function cleanOldDraftsExcept(preserveKey) {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('oj-code-') || k.startsWith('408oj_draft_'))) {
+          if (preserveKey && k === preserveKey) continue;
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
+    } catch (e) {}
+  }
+
   function scheduleSave() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
@@ -85,7 +102,18 @@
         localStorage.setItem(saveKey, ta.value);
         const el = document.getElementById('saveState');
         if (el) el.textContent = '草稿已保存 ' + new Date().toLocaleTimeString();
-      } catch (e) { /* 存储满时静默 */ }
+      } catch (e) {
+        // 存储空间满：清理其他题目的旧草稿并重试
+        cleanOldDraftsExcept(saveKey);
+        try {
+          localStorage.setItem(saveKey, ta.value);
+          const el = document.getElementById('saveState');
+          if (el) el.textContent = '草稿已保存 ' + new Date().toLocaleTimeString();
+        } catch (_) {
+          const el = document.getElementById('saveState');
+          if (el) el.textContent = '存储空间满，草稿保存失败';
+        }
+      }
     }, 400);
   }
 
