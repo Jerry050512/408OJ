@@ -36,6 +36,10 @@ python run.py                 # http://127.0.0.1:8408
 
 常用参数：`python run.py --port 9000` / `--db db.sqlite` / `--reseed`（重建题库）。
 
+评测默认开启**预热运行**：编译产物首次执行时可能被 Windows 安全软件（如火绒）
+扫描阻塞 1~2 秒，评测前先空跑一次可避免这段等待被计入首个测试点而误判 TLE。
+可用 `python run.py --no-warmup` 关闭。
+
 ## 运行测试
 
 ```bash

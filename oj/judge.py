@@ -157,6 +157,38 @@ def run_program(exe_path: Path, stdin_data: str, time_limit_ms: int,
             "stdout": stdout, "stderr": stderr, "returncode": proc.returncode}
 
 
+def warmup_program(exe_path: Path, cwd: Path | None = None,
+                   timeout_ms: int | None = None) -> None:
+    """预热运行：正式评测前先空跑一次编译产物，并丢弃结果。
+
+    Windows 上的杀毒 / 主动防御软件（如火绒 HipsDaemon）会在刚创建的可执行
+    文件首次运行前对其扫描，期间进程被阻塞、CPU 占用为 0，这段等待常达
+    1~2 秒。若直接计入第一个测试点会误判为 TLE。这里用空输入跑一次，让安全
+    软件完成扫描；超过 timeout_ms 仍未退出则强制结束。
+    """
+    if timeout_ms is None:
+        timeout_ms = config.WARMUP_TIMEOUT_MS
+    if timeout_ms <= 0:
+        return
+    workdir = cwd or exe_path.parent
+    try:
+        proc = subprocess.Popen(
+            [str(exe_path)], stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            cwd=workdir,
+        )
+    except OSError:
+        return
+    try:
+        proc.wait(timeout=timeout_ms / 1000.0)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            pass
+
+
 def normalize_output(s: str) -> str:
     """OJ 标准比对：去行尾空白、去文末空行，统一换行符。"""
     lines = s.replace("\r\n", "\n").replace("\r", "\n").split("\n")
@@ -173,8 +205,12 @@ def outputs_equal(expected: str, actual: str) -> bool:
 def judge_code(src: str, policy: dict | None, testcases: list[dict[str, Any]],
                time_limit_ms: int = config.DEFAULT_TIME_LIMIT_MS,
                memory_limit_kb: int = config.DEFAULT_MEMORY_LIMIT_KB,
-               keep_build: bool = False) -> dict:
+               keep_build: bool = False,
+               warmup: bool | None = None) -> dict:
     """完整评测：policy 检查 + 编译 + 运行所有测试点。
+
+    warmup 为 None 时取 config.WARMUP_ENABLED；正式计时前先空跑一次编译产物，
+    避免安全软件扫描新可执行文件造成的首次运行阻塞被判成 TLE。
 
     返回 dict(verdict, passed, total, compile_msg, results[], max_time_ms, max_mem_kb, policy_issues)
     """
@@ -199,6 +235,9 @@ def judge_code(src: str, policy: dict | None, testcases: list[dict[str, Any]],
         if not ok:
             base["verdict"] = VERDICT_CE
             return base
+        do_warmup = config.WARMUP_ENABLED if warmup is None else warmup
+        if do_warmup:
+            warmup_program(exe, cwd=workdir)
         results = []
         passed = 0
         for idx, tc in enumerate(testcases):
@@ -239,8 +278,12 @@ def judge_code(src: str, policy: dict | None, testcases: list[dict[str, Any]],
 
 def run_custom(src: str, policy: dict | None, stdin_data: str,
                time_limit_ms: int = config.DEFAULT_TIME_LIMIT_MS,
-               memory_limit_kb: int = config.DEFAULT_MEMORY_LIMIT_KB) -> dict:
-    """试跑：编译并用自定义输入运行一次，返回标准输出。"""
+               memory_limit_kb: int = config.DEFAULT_MEMORY_LIMIT_KB,
+               warmup: bool | None = None) -> dict:
+    """试跑：编译并用自定义输入运行一次，返回标准输出。
+
+    warmup 为 None 时取 config.WARMUP_ENABLED。
+    """
     from .policy import check_source
 
     issues = check_source(src, policy or {})
@@ -253,6 +296,9 @@ def run_custom(src: str, policy: dict | None, stdin_data: str,
         ok, cmsg, exe = compile_source(src, workdir)
         if not ok:
             return {"ok": False, "stage": "compile", "message": cmsg}
+        do_warmup = config.WARMUP_ENABLED if warmup is None else warmup
+        if do_warmup:
+            warmup_program(exe, cwd=workdir)
         r = run_program(exe, stdin_data, time_limit_ms, memory_limit_kb, cwd=workdir)
         return {"ok": r["verdict"] == VERDICT_AC, "stage": "run",
                 "verdict": r["verdict"], "stdout": r["stdout"],
