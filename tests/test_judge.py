@@ -2,7 +2,7 @@
 """评测机测试：AC / WA / TLE / RE / CE、比对规则、试跑。"""
 import pytest
 
-from oj import judge
+from oj import config, judge
 
 SOLVE_ADD = r"""
 #include <stdio.h>
@@ -112,3 +112,67 @@ def test_run_custom_policy_fail():
 def test_memory_sampled():
     r = _run(SOLVE_ADD)
     assert r["max_mem_kb"] > 0 if judge.psutil else True
+
+
+# ---------------------------------------------------------------------------
+# 预热运行（warmup）：规避安全软件扫描新 exe 造成的首次运行阻塞
+# ---------------------------------------------------------------------------
+
+def test_warmup_default_on():
+    assert config.WARMUP_ENABLED_DEFAULT is True
+    assert config.WARMUP_TIMEOUT_MS > 0
+
+
+def test_judge_code_warmup_toggle(monkeypatch):
+    calls = []
+    monkeypatch.setattr(judge, "warmup_program", lambda *a, **k: calls.append(a))
+
+    r = judge.judge_code(SOLVE_ADD, {"level": "standard"}, TWO_CASES, warmup=True)
+    assert r["verdict"] == "AC" and len(calls) == 1
+
+    calls.clear()
+    r = judge.judge_code(SOLVE_ADD, {"level": "standard"}, TWO_CASES, warmup=False)
+    assert r["verdict"] == "AC" and calls == []
+
+
+def test_judge_code_warmup_uses_config_default(monkeypatch):
+    calls = []
+    monkeypatch.setattr(judge, "warmup_program", lambda *a, **k: calls.append(a))
+
+    monkeypatch.setattr(config, "WARMUP_ENABLED", True)
+    judge.judge_code(SOLVE_ADD, {"level": "standard"}, TWO_CASES)
+    assert len(calls) == 1
+
+    calls.clear()
+    monkeypatch.setattr(config, "WARMUP_ENABLED", False)
+    judge.judge_code(SOLVE_ADD, {"level": "standard"}, TWO_CASES)
+    assert calls == []
+
+
+def test_run_custom_warmup_toggle(monkeypatch):
+    calls = []
+    monkeypatch.setattr(judge, "warmup_program", lambda *a, **k: calls.append(a))
+
+    r = judge.run_custom(SOLVE_ADD, {"level": "standard"}, "20 22\n", warmup=True)
+    assert r["ok"] and len(calls) == 1
+
+    calls.clear()
+    r = judge.run_custom(SOLVE_ADD, {"level": "standard"}, "20 22\n", warmup=False)
+    assert r["ok"] and calls == []
+
+
+def test_warmup_program_returns_after_exit(tmp_path):
+    ok, msg, exe = judge.compile_source(
+        "#include <stdio.h>\nint main(){ return 0; }", tmp_path)
+    assert ok, msg
+    judge.warmup_program(exe, cwd=tmp_path, timeout_ms=3000)  # 不应抛异常
+
+
+def test_warmup_program_kills_hanging_program(tmp_path):
+    import time
+    ok, msg, exe = judge.compile_source(
+        "int main(){ for(;;); return 0; }", tmp_path)
+    assert ok, msg
+    t0 = time.monotonic()
+    judge.warmup_program(exe, cwd=tmp_path, timeout_ms=300)
+    assert time.monotonic() - t0 < 2.5

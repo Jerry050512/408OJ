@@ -3,7 +3,7 @@
 """408OJ 本地启动入口。
 
 用法：
-    python run.py [--host 127.0.0.1] [--port 8408] [--db PATH] [--reseed]
+    python run.py [--host 127.0.0.1] [--port 8408] [--db PATH] [--reseed] [--no-warmup]
 """
 from __future__ import annotations
 
@@ -17,10 +17,17 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8408)
     parser.add_argument("--db", default=None, help="SQLite 数据文件路径")
     parser.add_argument("--reseed", action="store_true", help="重建题库（ submissions 保留）")
+    parser.add_argument(
+        "--no-warmup", action="store_true",
+        help="关闭评测前的预热运行（默认开启；预热用于规避 Windows 安全软件"
+             "扫描新可执行文件带来的首次运行阻塞）")
     args = parser.parse_args()
 
     from pathlib import Path
     from oj import config, db as dbm, seed
+
+    if args.no_warmup:
+        config.WARMUP_ENABLED = False
 
     db_path = Path(args.db) if args.db else config.DB_PATH
     config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
